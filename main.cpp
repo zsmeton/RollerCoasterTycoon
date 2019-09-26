@@ -100,8 +100,6 @@ int spaceKey;                                       // status of the 'Space' Key
 float getRand() { return rand() / (float) RAND_MAX; }
 
 
-
-
 // computePosition() //////////////////////////////////////////////////////
 //
 // This function returns the camera's direction in cartesian coordinates based

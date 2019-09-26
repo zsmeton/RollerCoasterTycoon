@@ -101,7 +101,7 @@ private:
         }
     }
 
-    void drawFaeryBody(){
+    void drawFaeryBody() const{
         glColor3f(0.2f,0.2f,0.2f);
         glm::mat4 bodyMtx = glm::scale(glm::mat4(1.0f), glm::vec3(0.1f,0.1f,0.1f));
         glMultMatrixf(&bodyMtx[0][0]);
@@ -111,7 +111,7 @@ private:
         glMultMatrixf(&(glm::inverse(bodyMtx))[0][0]);
     }
 
-    void drawFaeryWing(){
+    void drawFaeryWing() const{
         glDisable(GL_LIGHTING);
         glColor3f(0.0f,0.0f,0.0f);
         glm::mat4 bodyMtx = glm::scale(glm::mat4(1.0f), glm::vec3(0.1f,0.1f,0.1f));
@@ -127,7 +127,7 @@ private:
         glEnable(GL_LIGHTING);
     }
 
-    void drawFaery(){
+    void drawFaery() const{
         drawFaeryBody();
         glm::mat4 lWingMtx = glm::translate(glm::mat4(1.0f), glm::vec3(0.1f,0.025f,-0.01f));
         lWingMtx = glm::rotate(lWingMtx, faeryTheta,glm::vec3(0.0f,1.0f,0.0f));
@@ -145,7 +145,7 @@ private:
         glMultMatrixf(&(glm::inverse(rWingMtx))[0][0]);
     }
 
-    void drawHorseBody() {
+    void drawHorseBody() const{
         // Calculate horse Width
         glm::mat4 horseMtx = glm::scale(glm::mat4(1.0f), glm::vec3(HORSE_WIDTH, HORSE_WIDTH, HORSE_LENGTH));
         glMultMatrixf(&horseMtx[0][0]);
@@ -156,7 +156,7 @@ private:
     }
 
 
-    void drawHorseLeg() {
+    void drawHorseLeg() const{
         // Draw upper leg
         glm::mat4 upperLegMtx = glm::rotate(glm::mat4(1.0f), HORSE_LEG_ANGLE, glm::vec3(1.0f, 0.0f, 0.0f));
         upperLegMtx = glm::translate(upperLegMtx, glm::vec3(0.0f, 0.0f, HORSE_LEG_SIZE / 2));
@@ -181,7 +181,7 @@ private:
         glMultMatrixf(&(glm::inverse(lowerLegMtx))[0][0]);
     }
 
-    void drawHorseHeadAndKneck() {
+    void drawHorseHeadAndKneck() const{
         // Draw the kneck
         glm::mat4 kneckMtx = glm::rotate(glm::mat4(1.0f), HORSE_KNECK_ANGLE, glm::vec3(1.0f, 0.0f, 0.0f));
         kneckMtx = glm::translate(kneckMtx, glm::vec3(0.0f, 0.0f, HORSE_KNECK_LENGTH / 2));
@@ -205,7 +205,7 @@ private:
         glMultMatrixf(&(glm::inverse(headMtx))[0][0]);
     }
 
-    void drawHorse() {
+    void drawHorse() const{
         glColor3f(0.3569f, 0.278f, 0.137f);
         drawHorseBody();
         // Draw left front leg
@@ -260,7 +260,7 @@ private:
 
     }
 
-    void drawCartBody() {
+    void drawCartBody() const{
         // draw bottom
         glColor3f(0.553f, 0.3686f, 0.051f);
         glm::mat4 botttomMtx = glm::scale(glm::mat4(1.0f), glm::vec3(1.0f, CART_THICKNESS, 1.0f));
@@ -314,7 +314,7 @@ private:
 
     }
 
-    void drawWheel() {
+    void drawWheel() const{
         glColor3f(0.553f, 0.3686f, 0.051f);
         // Draw the spokes
         for (float rad = 0; rad < M_PI; rad += M_PI / 3) {
@@ -339,7 +339,7 @@ private:
     }
 
 // Draws the vehicle (a cart)
-    void drawCart() {
+    void drawCart() const{
         // Draw body
         drawCartBody();
         // Draw left wheel
@@ -363,7 +363,7 @@ private:
 
     }
 
-    void drawCartAndHorse() {
+    void drawCartAndHorse() const{
         glm::mat4 cartMtx = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, -1.5f/2));
         glMultMatrixf(&cartMtx[0][0]);
         {
@@ -378,7 +378,7 @@ private:
 
     }
 
-    void drawCharacterAndFaery(){
+    void drawCharacterAndFaery() const{
         drawCartAndHorse();
         glColor3f(0.0f,0.0f,1.0f);
 
