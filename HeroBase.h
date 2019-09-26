@@ -6,7 +6,9 @@
 #define MP_HEROBASE_H
 #include <GL/gl.h>
 #include <glm/glm.hpp>
+#include <CSCI441/objects.hpp> // for our 3D objects
 #include "HelperFunctions.h"
+const float FPS_ADJUSTMENT = 0.2;
 
 class HeroBase{
 public:
