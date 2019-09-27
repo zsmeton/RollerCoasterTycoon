@@ -6,7 +6,9 @@
 #define A4_BEZIERCURVE_H
 
 #include <GL/gl.h>
+#include <CSCI441/objects.hpp> // for our 3D objects
 #include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
 #include <vector>               // for vector data structure
 #include <bits/stdc++.h>        // For fmod()
 using namespace std;
@@ -17,7 +19,7 @@ const int RESOLUTION = 20;
 
 
 /*!
- * Computes a location along a Bezier Curve. Given the time step and the computed coefficients
+ * Computes a location along a Bezier Curve. Given the time step and the control cage
  * @param p0
  * @param p1
  * @param p2
@@ -49,7 +51,7 @@ glm::vec3 evaluateBezierCurveDerivative(glm::vec3 p0, glm::vec3 p1, glm::vec3 p2
     glm::vec3 b = 3.0f * p0 - 6.0f * p1 + 3.0f * p2;
     glm::vec3 c = -3.0f * p0 + 3.0f * p1;
     glm::vec3 d = p0;
-    glm::vec3 point = 2.0f*static_cast<float>(pow(t, 2)) * a + 2*static_cast<float>(pow(t, 1)) * b + c;
+    glm::vec3 point = 3.0f*static_cast<float>(pow(t, 2)) * a + 2*static_cast<float>(pow(t, 1)) * b + c;
     return point;
 }
 
@@ -81,9 +83,9 @@ void renderBezierCurve(glm::vec3 p0, glm::vec3 p1, glm::vec3 p2, glm::vec3 p3, i
  * @param controlCage
  * @param controlPointRad
  */
-void drawControlPoints(const vector<glm::vec3>& controlCage, const float controlPointRad) {
+void drawControlPoints(const vector<glm::vec3>& controlPoints, const float controlPointRad) {
     glColor3f(0.0f, 1.0f, 0.0f);
-    for (auto point : controlCage) {
+    for (auto point : controlPoints) {
         glm::mat4 transMtx = glm::translate(glm::mat4(1.0f), point);
         glMultMatrixf(&transMtx[0][0]);
         {
@@ -95,15 +97,15 @@ void drawControlPoints(const vector<glm::vec3>& controlCage, const float control
 
 /*!
  * Draws a yellow line between the control points in strip style
- * @param controlCage
+ * @param controlPoints
  */
-void drawControlPointConnections(const vector<glm::vec3>& controlCage) {
+void drawControlPointConnections(const vector<glm::vec3>& controlPoints) {
     glDisable(GL_LIGHTING);
     glColor3f(1.0f, 1.0f, 0.0f);
     glLineWidth(3.0f);
     glBegin(GL_LINE_STRIP);
     {
-        for (auto point : controlCage) {
+        for (auto point : controlPoints) {
             glVertex3f(point.x, point.y, point.z);
         }
     };
@@ -112,10 +114,10 @@ void drawControlPointConnections(const vector<glm::vec3>& controlCage) {
 }
 
 /*!
- * Draws a blue line along a bezier curve defined by controlCage
- * @param controlCage the points defining the bezier curve
+ * Draws a line along a bezier curve defined by controlPoints
+ * @param controlPoints the points defining the bezier curve
  */
-void drawBezierCurve(const vector<glm::vec3>& controlCage) {
+void drawBezierCurve(const vector<glm::vec3>& controlPoints) {
     // Break the control cage into groups of four
     // i.e. p1,p2,p3,p4,p5,p6,p7 -> (p1,p2,p3,p4),(p4,p5,p6,p7)
     //      p1,p2,p3,p4,p5,p6,p7,p8 -> (p1,p2,p3,p4),(p4,p5,p6,p7)
@@ -125,7 +127,7 @@ void drawBezierCurve(const vector<glm::vec3>& controlCage) {
     // 3) goto 1)
     int i = 0;
     vector<glm::vec3> group;
-    for (auto point : controlCage) {
+    for (auto point : controlPoints) {
         group.push_back(point);
         i++;
         if (i == GROUP_SIZE) {
@@ -141,11 +143,11 @@ void drawBezierCurve(const vector<glm::vec3>& controlCage) {
 
 /*!
  * Computes the position of a point along the bezier curve at time step t
- * @param controlCage the points defining the bezier curve
+ * @param controlPoints the points defining the bezier curve
  * @param t the timestep along the curve
  * @return [x,y,z]
  */
-glm::vec3 computePositionBezierCurve(const vector<glm::vec3>& controlCage, const float t) {
+glm::vec3 computePositionBezierCurve(const vector<glm::vec3>& controlPoints, const float t) {
     // The bezier curve is grouped into fours
     // i.e. p1,p2,p3,p4,p5,p6,p7 -> (p1,p2,p3,p4),(p4,p5,p6,p7)
     //      p1,p2,p3,p4,p5,p6,p7,p8 -> (p1,p2,p3,p4),(p4,p5,p6,p7)
@@ -153,15 +155,15 @@ glm::vec3 computePositionBezierCurve(const vector<glm::vec3>& controlCage, const
     // calculate which group defines the bezier curve we must the object is on
 
     // calculate which bezier curve the object is in based on dt
-    int group = int(t) % int(controlCage.size()/3);
+    int group = int(t) % int(controlPoints.size()/3);
     int groupStartIndex = 4*group;
     if(groupStartIndex != 0){
         groupStartIndex -=1;
     }
-    glm::vec3 p0 = controlCage.at(groupStartIndex);
-    glm::vec3 p1 = controlCage.at(groupStartIndex+1);
-    glm::vec3 p2 = controlCage.at(groupStartIndex+2);
-    glm::vec3 p3 = controlCage.at(groupStartIndex+3);
+    glm::vec3 p0 = controlPoints.at(groupStartIndex);
+    glm::vec3 p1 = controlPoints.at(groupStartIndex+1);
+    glm::vec3 p2 = controlPoints.at(groupStartIndex+2);
+    glm::vec3 p3 = controlPoints.at(groupStartIndex+3);
     float groupDt = fmod(t,1.0f) ;
     return evaluateBezierCurve(p0,p1,p2,p3,groupDt);
 }
@@ -169,11 +171,11 @@ glm::vec3 computePositionBezierCurve(const vector<glm::vec3>& controlCage, const
 
 /*!
  * Computes the derivative of the bezier curve at time t
- * @param controlCage the points defining the bezier curve
+ * @param controlPoints the points defining the bezier curve
  * @param t the time step along the curve
  * @return [dx,dy,z]
  */
-glm::vec3 computeRotationBezierCurve(const vector<glm::vec3>& controlCage, const float dt) {
+glm::vec3 computeRotationBezierCurve(const vector<glm::vec3>& controlPoints, const float dt) {
     // The bezier curve is grouped into fours
     // i.e. p1,p2,p3,p4,p5,p6,p7 -> (p1,p2,p3,p4),(p4,p5,p6,p7)
     //      p1,p2,p3,p4,p5,p6,p7,p8 -> (p1,p2,p3,p4),(p4,p5,p6,p7)
@@ -181,15 +183,15 @@ glm::vec3 computeRotationBezierCurve(const vector<glm::vec3>& controlCage, const
     // calculate which group defines the bezier curve we must the object is on
 
     // calculate which bezier curve the object is in based on dt
-    int group = int(dt) % int(controlCage.size()/3);
+    int group = int(dt) % int(controlPoints.size()/3);
     int groupStartIndex = 4*group;
     if(groupStartIndex != 0){
         groupStartIndex -=1;
     }
-    glm::vec3 a = controlCage.at(groupStartIndex);
-    glm::vec3 b = controlCage.at(groupStartIndex+1);
-    glm::vec3 c = controlCage.at(groupStartIndex+2);
-    glm::vec3 d = controlCage.at(groupStartIndex+3);
+    glm::vec3 a = controlPoints.at(groupStartIndex);
+    glm::vec3 b = controlPoints.at(groupStartIndex+1);
+    glm::vec3 c = controlPoints.at(groupStartIndex+2);
+    glm::vec3 d = controlPoints.at(groupStartIndex+3);
     float groupT = fmod(dt,1.0f) ;
     return evaluateBezierCurveDerivative(a,b,c,d,groupT);
 }

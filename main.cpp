@@ -32,6 +32,7 @@
 #include <iostream>
 #include <limits>
 #include "BezierCurve.h"
+#include "BezierPatch.h"
 #include "Hero1.h"
 using namespace std;
 
@@ -58,7 +59,8 @@ const float CAM_ANGULAR_VEL = FPS_ADJUSTMENT*0.05f;                // camera's r
 // Environment drawing variables
 GLuint environmentDL;                            // display list for the 'city'
 
-const int MAP_SIZE = 50;
+vector<glm::vec3> groundControlPoints;
+const int MAP_SIZE = 100;
 const int GRID_START = -MAP_SIZE;
 const int GRID_END = MAP_SIZE;
 const float DRAW_RANDOM_TOLERANCE = 0.1;                 // The chance an environment object is drawn
@@ -79,14 +81,9 @@ Cart cartHero;
 // camera movement
 int leftMouseButton;                                // status of the mouse button
 glm::vec2 mousePos;                                    // last known X and Y of the mouse
-// vehicle movement
-int wKey;                                           // status of the 'W' key
-int aKey;                                           // status of the 'A' key
-int sKey;                                           // status of the 'S' key
-int dKey;                                           // status of the 'D' key
-int shiftKey;                                       // status of the 'Shift' Key
-int ctrlKey;                                        // status of the 'Ctrl' Key
-int spaceKey;                                       // status of the 'Space' Key
+// Keys movement
+bool keysDown[256] = {0};           // status of our keys
+bool ctrlKey;                                        // status of the 'Ctrl' Key
 //*************************************************************************************
 //
 // Helper Functions
@@ -130,11 +127,15 @@ void recomputePosition() {
 // This function updates keeps the player on the map
 ////////////////////////////////////////////////////////////////////////////////
 glm::vec3 characterPos(glm::vec3 position) {
-    // Find the angle the vehicle should be at using maps y at the left and right wheel location
-    position.x = restrictVariable<float>(position.x, float(GRID_START), float(GRID_END));
-    position.z = restrictVariable<float>(position.z, float(GRID_START), float(GRID_END));
+    position = computePositionBezierPatch(groundControlPoints, position.x,position.z);
     return position;
 }
+
+glm::vec3 characterNormal(glm::vec3 position){
+    vector<glm::vec3> divUV = evaluateBezierPatchDerivative(groundControlPoints, position.x, position.z);
+    return glm::normalize(glm::cross(divUV.at(0), divUV.at(1)));
+}
+
 
 
 //*************************************************************************************
@@ -162,34 +163,24 @@ static void keyboard_callback(GLFWwindow *window, int key, int scancode, int act
             case GLFW_KEY_ESCAPE:
             case GLFW_KEY_Q:
                 exit(EXIT_SUCCESS);
+            case GLFW_KEY_LEFT_CONTROL:
+            case GLFW_KEY_RIGHT_CONTROL:
+                ctrlKey = true;
+                break;
+            default:
+                keysDown[key] = true;
         }
     }
-
     // Update key status
-    switch (key) {
-        case GLFW_KEY_W:
-            wKey = action;
-            break;
-        case GLFW_KEY_A:
-            aKey = action;
-            break;
-        case GLFW_KEY_S:
-            sKey = action;
-            break;
-        case GLFW_KEY_D:
-            dKey = action;
-            break;
-        case GLFW_KEY_LEFT_SHIFT:
-        case GLFW_KEY_RIGHT_SHIFT:
-            shiftKey = action;
-            break;
-        case GLFW_KEY_LEFT_CONTROL:
-        case GLFW_KEY_RIGHT_CONTROL:
-            ctrlKey = action;
-            break;
-        case GLFW_KEY_SPACE:
-            spaceKey = action;
-            break;
+    if(action == GLFW_RELEASE) {
+        switch (key) {
+            case GLFW_KEY_LEFT_CONTROL:
+            case GLFW_KEY_RIGHT_CONTROL:
+                ctrlKey = false;
+                break;
+            default:
+                keysDown[key] = false;
+        }
     }
 }
 
@@ -205,7 +196,7 @@ static void keyboard_callback(GLFWwindow *window, int key, int scancode, int act
 static void cursor_callback(GLFWwindow *window, double x, double y) {
     if (leftMouseButton == GLFW_PRESS) {
         // If shift drag change camera position
-        if (ctrlKey == GLFW_PRESS || ctrlKey == GLFW_REPEAT) {
+        if (ctrlKey) {
             cameraDist += CAM_SPEED * (y - mousePos.y);
             cameraDist = restrictVariable(cameraDist, 2.0f, 15.0f);
         } else {
@@ -241,6 +232,28 @@ static void mouse_button_callback(GLFWwindow *window, int button, int action, in
 
 // TODO:
 void updateWandersPos() {
+    bool moved = false;
+    if(keysDown[GLFW_KEY_W]) {
+        cartHero.moveForward();
+        moved = true;
+    }
+    if(keysDown[GLFW_KEY_S]){
+        cartHero.moveBackward();
+        moved = true;
+    }
+    if(keysDown[GLFW_KEY_A]){
+        cartHero.turnLeft();
+        moved = true;
+    }
+    if(keysDown[GLFW_KEY_D]){
+        cartHero.turnRight();
+        moved = true;
+    }
+    // Correct the hero's y position
+    if(moved){
+        cartHero.setPos(characterPos(cartHero.getBezierPosition()));
+        cartHero.setOrientation(characterNormal(cartHero.getBezierPosition()));
+    }
 
 }
 
@@ -250,7 +263,7 @@ void updateWandersPos() {
 //
 ////////////////////////////////////////////////////////////////////////////////
 void update() {
-
+    updateWandersPos();
 }
 
 //*************************************************************************************
@@ -266,41 +279,19 @@ void update() {
 //
 ////////////////////////////////////////////////////////////////////////////////
 void drawGrid() {
-    glDisable(GL_LIGHTING);
-    // Draw the map in the xz plane using perlin noise to generate y position
     // Creating a realistic topography
-    glColor3f(1.0f, 1.0f, 1.0f);
-    for (int i = GRID_START + 1; i < GRID_END + 1; i++) {
-        for (int j = GRID_START + 1; j < GRID_END + 1; j++) {
-            // Draw lines running along x-axis
-            glBegin(GL_LINES);
-            {
-                glVertex3f(i - 1, 0.0f, j);
-                glVertex3f(i, 0.0f, j);
-            }
-            glEnd();
-            glBegin(GL_LINES);
-            {
-                glVertex3f(i - 1, 0.0f, j - 1);
-                glVertex3f(i, 0.0f, j - 1);
-            }
-            glEnd();
-            // Draw lines running along z-axis
-            glBegin(GL_LINES);
-            {
-                glVertex3f(i, 0.0f, j - 1);
-                glVertex3f(i,0.0f, j);
-            }
-            glEnd();
-            glBegin(GL_LINES);
-            {
-                glVertex3f(i - 1, 0.0f, j - 1);
-                glVertex3f(i - 1, 0.0f, j);
-            }
-            glEnd();
+
+    int spacing = (GRID_END-GRID_START)/3;
+    float height = 0.2*(GRID_END-GRID_START);
+    for (int i = GRID_START; i < GRID_END; i+= spacing) {
+        for (int j = GRID_START; j < GRID_END; j+= spacing) {
+            groundControlPoints.emplace_back(glm::vec3((float)i, (float)(height*getRand()-height/2), (float)j));
         }
     }
-    glEnable(GL_LIGHTING);
+    glColor3f(1.0f,1.0f,1.0f);
+    GLfloat matColorD[4] = { 1.0f,1.0f,1.0f, 1.0f };
+    glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE, matColorD);
+    drawBezierPatch(groundControlPoints);
 }
 
 // Draw a "house" a rectangle of random color and height
@@ -407,7 +398,7 @@ void generateEnvironmentDL() {
     glNewList(environmentDL, GL_COMPILE);
     {
         drawGrid();
-        drawEnvironment();
+        //drawEnvironment();
     }
     glEndList();
 
@@ -488,14 +479,16 @@ void setupOpenGL() {
     //		surface removal.  We will discuss this more very soon.
     glEnable(GL_DEPTH_TEST);
 
+    //glEnable( GL_CULL_FACE );           // enable back face culling to speed render times
+    glFrontFace( GL_CCW );              // denote front faces specified by counter-clockwise winding order
+    glCullFace( GL_BACK );              // cull our back faces
     //******************************************************************
     // this is some code to enable a default light for the scene;
     // feel free to play around with this, but we won't talk about
     // lighting in OpenGL for another couple of weeks yet.
     GLfloat lightCol[4] = {1, 1, 1, 1};
     GLfloat ambientCol[4] = {0.0, 0.0, 0.0, 1.0};
-    GLfloat lPosition[4] = {10, 10, 10, 1};
-    glLightfv(GL_LIGHT0, GL_POSITION, lPosition);
+
     glLightfv(GL_LIGHT0, GL_DIFFUSE, lightCol);
     glLightfv(GL_LIGHT0, GL_AMBIENT, ambientCol);
     glEnable(GL_LIGHTING);
@@ -504,7 +497,8 @@ void setupOpenGL() {
     // tell OpenGL not to use the material system; just use whatever we
     // pass with glColor*()
     glEnable(GL_COLOR_MATERIAL);
-    glColorMaterial(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE);
+    //glColorMaterial(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE);
+
     glEnable(GL_SCISSOR_TEST);
     //******************************************************************
 
@@ -531,9 +525,9 @@ void setupScene() {
     cameraPhi = 3 * M_PI / 5;
     cameraTheta = 0;
     recomputePosition();
-
     srand(time(NULL));    // seed our random number generator
     generateEnvironmentDL();
+    cartHero.setPos(characterPos(cartHero.getBezierPosition()));
 }
 
 ///*************************************************************************************
@@ -607,6 +601,8 @@ int main(int argc, char *argv[]) {
                                         glm::vec3(0, 1, 0));        // up vector is (0, 1, 0) - positive Y
         // multiply by the look at matrix - this is the same as our view martix
         glMultMatrixf(&viewMtx[0][0]);
+        GLfloat lPosition[4] = {10, 10, 10, 1};
+        glLightfv(GL_LIGHT0, GL_POSITION, lPosition);
 
         renderScene();                    // draw everything to the window
 

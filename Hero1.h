@@ -4,6 +4,7 @@
 
 #ifndef MP_HERO1_H
 #define MP_HERO1_H
+
 #include <GL/gl.h>
 #include <vector>
 #include <glm/glm.hpp>
@@ -15,42 +16,112 @@
 
 using namespace std;
 
-const float CART_WIDTH = 1.0f;
-const float CART_THICKNESS = 0.1f;
-const float CART_WHEEL_RADIUS = 0.3;
-const float HORSE_WIDTH = (CART_WIDTH - CART_THICKNESS * 2) / 2;
-const float HORSE_LENGTH = 1.0f;
-const float HORSE_LEG_ANGLE = 4 * M_PI / 3;
-const float HORSE_LEG_SIZE = 0.2;
-const float HORSE_KNECK_ANGLE = 3 * M_PI / 4;
-const float HORSE_KNECK_LENGTH = 0.4;
 
-const float AVG_VEL = FPS_ADJUSTMENT*0.1f;
-const float ANGULAR_AVG_VEL = FPS_ADJUSTMENT*0.04f;
-const float WHL_AVG_VEL = FPS_ADJUSTMENT*0.2f;
-const float LEG_THETA_RATE = FPS_ADJUSTMENT * 0.1;
-
-const float FAERY_VEL = FPS_ADJUSTMENT*0.01;
-const float F_MAX = std::numeric_limits<float>::max();
-const float FAERY_RAD_MAX = 0.6;
-
-
-class Cart: public HeroBase{
+class Cart : public HeroBase {
 public:
+    constexpr static const float CART_WIDTH = 1.0f;
+    constexpr static const float CART_THICKNESS = 0.1f;
+    constexpr static const float CART_WHEEL_RADIUS = 0.3;
+    constexpr static const float HORSE_WIDTH = (CART_WIDTH - CART_THICKNESS * 2) / 2;
+    constexpr static const float HORSE_LENGTH = 1.0f;
+    constexpr static const float HORSE_LEG_ANGLE = 4 * M_PI / 3;
+    constexpr static const float HORSE_LEG_SIZE = 0.2;
+    constexpr static const float HORSE_KNECK_ANGLE = 3 * M_PI / 4;
+    constexpr static const float HORSE_KNECK_LENGTH = 0.4;
+
+    constexpr static const float VEL = FPS_ADJUSTMENT * 0.01f;
+    constexpr static const float ANGULAR_VEL = FPS_ADJUSTMENT * 0.04f;
+    constexpr static const float WHL_VEL = FPS_ADJUSTMENT * 0.2f;
+    constexpr static const float LEG_THETA_RATE = FPS_ADJUSTMENT * 0.1;
+
+    constexpr static const float FAERY_VEL = FPS_ADJUSTMENT * 0.001;
+    constexpr static const float F_MAX = std::numeric_limits<float>::max();
+    constexpr static const float FAERY_RAD_MAX = 0.6;
+    glm::vec3 UP = glm::vec3(0.0f,1.0f,0.0f);
+
     Cart() {}
 
     void draw() override {
-        glm::mat4 vehicleMtx = glm::translate(glm::mat4(1.0f), getPos() + glm::vec3(0.0f, CART_WHEEL_RADIUS, 0.0f));
-        vehicleMtx = glm::rotate(vehicleMtx, cartAndHorseTheta, glm::vec3(0.0f, 1.0f, 0.0f));
-        glMultMatrixf(&vehicleMtx[0][0]);{
+        glm::vec3 rotAxis =glm::cross(UP, orientation);
+        float rad = acos(glm::dot( glm::normalize(orientation), glm::normalize(UP)));
+        // Translate to the position
+        glm::mat4 vehicleMtx = glm::translate(glm::mat4(1.0f), getPos());
+        // Rotate to match the terrain
+        vehicleMtx = glm::rotate(vehicleMtx, rad, rotAxis);
+        // Translate upwards to keep wheels out of ground
+        vehicleMtx = glm::translate(vehicleMtx, glm::vec3(0.0f,CART_WHEEL_RADIUS+CART_THICKNESS / 2, 0.0f));
+        // Orient along direction
+        vehicleMtx = glm::rotate(vehicleMtx, theta, glm::vec3(0.0f, 1.0f, 0.0f));
+        glMultMatrixf(&vehicleMtx[0][0]);
+        {
             drawCharacterAndFaery();
         }
         glMultMatrixf(&(glm::inverse(vehicleMtx))[0][0]);
+
     }
 
     void update() override {
 
     }
+
+    void moveForward() {
+        bezierPosition += direction * VEL;
+        leftWhlTheta += WHL_VEL;
+        rightWhlTheta += WHL_VEL;
+        moveLegs();
+        restrictBezierPosition();
+    }
+
+    void moveBackward() {
+        bezierPosition -= direction * VEL;
+        leftWhlTheta += WHL_VEL;
+        rightWhlTheta += WHL_VEL;
+        moveLegs(true);
+        restrictBezierPosition();
+    }
+
+    void turnLeft() {
+        theta += ANGULAR_VEL;
+        leftWhlTheta -= WHL_VEL / 3;
+        rightWhlTheta += WHL_VEL / 3;
+        recomputeDirection();
+    }
+
+    void turnRight() {
+        theta -= ANGULAR_VEL;
+        leftWhlTheta += WHL_VEL / 3;
+        rightWhlTheta -= WHL_VEL / 3;
+        recomputeDirection();
+    }
+
+    const glm::vec3 &getBezierPosition() const {
+        return bezierPosition;
+    }
+
+    const vector<glm::vec3> &getControlPoints() const {
+        return controlPoints;
+    }
+
+    void setControlPoints(const vector<glm::vec3> &controlPoints) {
+        this->controlPoints = controlPoints;
+    }
+
+    const glm::vec3 &getDirection() const {
+        return direction;
+    }
+
+    void setDirection(const glm::vec3 &direction) {
+        this->direction = direction;
+    }
+
+    const glm::vec3 &getOrientation() const {
+        return orientation;
+    }
+
+    void setOrientation(const glm::vec3 &orientation) {
+        this->orientation = orientation;
+    }
+
 private:
     /*!
      * This function updates the vehicles's velocity in cartesian coordinates based
@@ -59,25 +130,34 @@ private:
      */
     void recomputeDirection() {
         // Convert spherical coordinates into a cartesian vector
-        GLfloat x = sin(cartAndHorseTheta);
-        GLfloat z = cos(cartAndHorseTheta);
+        GLfloat x = cos(theta);
+        GLfloat z = sin(theta);
         GLfloat y = 0.0;
         direction = glm::vec3(x, y, z);
         // and NORMALIZE this directional vector!!!
         direction = glm::normalize(direction);
     }
 
-    void updateFaery(){
+    /*!
+     * This function keeps the bezier position between 0 and 1
+     */
+    void restrictBezierPosition() {
+        bezierPosition.x = restrictVariable<float>(bezierPosition.x, 0, 1);
+        bezierPosition.z = restrictVariable<float>(bezierPosition.z, 0, 1);
+    }
+
+    void updateFaery() {
         faeryDt += FAERY_VEL;
         faeryTheta += faeryThetaRate;
-        if(faeryDt >= F_MAX - 2*FAERY_VEL){
-            faeryDt = fmod(faeryDt,F_MAX - 2*FAERY_VEL);
-            cout<<"Well its been about 6 septillion years!!!"<<endl;
-        }if(faeryTheta >= FAERY_RAD_MAX || faeryTheta <= -FAERY_RAD_MAX){
-            faeryThetaRate = - faeryThetaRate;
+        if (faeryDt >= F_MAX - 2 * FAERY_VEL) {
+            faeryDt = fmod(faeryDt, F_MAX - 2 * FAERY_VEL);
+            cout << "Well its been about 6 septillion years!!!" << endl;
+        }
+        if (faeryTheta >= FAERY_RAD_MAX || faeryTheta <= -FAERY_RAD_MAX) {
+            faeryThetaRate = -faeryThetaRate;
         }
 
-        glm::vec3 faeryHeading= computeRotationBezierCurve(controlPoints, faeryDt);
+        glm::vec3 faeryHeading = computeRotationBezierCurve(controlPoints, faeryDt);
         faeryDir = glm::atan(faeryHeading.z, faeryHeading.x);
     }
 
@@ -85,59 +165,61 @@ private:
      * Updates the angle of the legs for a running like motion
      * @param negative move legs backwards
      */
-    void moveLegs(bool negative){
+    void moveLegs(bool negative = false) {
         float rate = legRate;
-        if(negative){
+        if (negative) {
             legTheta1 += rate;
             legTheta2 -= rate;
-        }else {
+        } else {
             legTheta1 -= rate;
             legTheta2 += rate;
         }
-        if(legTheta1 > M_PI/4 || legTheta2 < -M_PI/4){
+        if (legTheta1 > M_PI / 4 || legTheta2 < -M_PI / 4) {
             legRate = (negative) ? -LEG_THETA_RATE : LEG_THETA_RATE;
-        }else if(legTheta2 > M_PI/4 || legTheta1 < -M_PI/4){
+        } else if (legTheta2 > M_PI / 4 || legTheta1 < -M_PI / 4) {
             legRate = -((negative) ? -LEG_THETA_RATE : LEG_THETA_RATE);
         }
     }
 
-    void drawFaeryBody() const{
-        glColor3f(0.2f,0.2f,0.2f);
-        glm::mat4 bodyMtx = glm::scale(glm::mat4(1.0f), glm::vec3(0.1f,0.1f,0.1f));
+    void drawFaeryBody() const {
+        glColor3f(0.2f, 0.2f, 0.2f);
+        glm::mat4 bodyMtx = glm::scale(glm::mat4(1.0f), glm::vec3(0.1f, 0.1f, 0.1f));
         glMultMatrixf(&bodyMtx[0][0]);
         {
-            CSCI441::drawSolidSphere(1.0f, 20,20);
+            CSCI441::drawSolidSphere(1.0f, 20, 20);
         }
         glMultMatrixf(&(glm::inverse(bodyMtx))[0][0]);
     }
 
-    void drawFaeryWing() const{
+    void drawFaeryWing() const {
         glDisable(GL_LIGHTING);
-        glColor3f(0.0f,0.0f,0.0f);
-        glm::mat4 bodyMtx = glm::scale(glm::mat4(1.0f), glm::vec3(0.1f,0.1f,0.1f));
+        glColor3f(0.0f, 0.0f, 0.0f);
+        glm::mat4 bodyMtx = glm::scale(glm::mat4(1.0f), glm::vec3(0.1f, 0.1f, 0.1f));
         glMultMatrixf(&bodyMtx[0][0]);
         {
-            glBegin(GL_TRIANGLE_STRIP);{
-                glVertex3f(0.0f,1.2f,-1.0f);
-                glVertex3f(0.0f,0.0f,0.0f);
-                glVertex3f(0.0f,0.1f,-1.5f);
-            }glEnd();
+            glBegin(GL_TRIANGLE_STRIP);
+            {
+                glVertex3f(0.0f, 1.2f, -1.0f);
+                glVertex3f(0.0f, 0.0f, 0.0f);
+                glVertex3f(0.0f, 0.1f, -1.5f);
+            }
+            glEnd();
         }
         glMultMatrixf(&(glm::inverse(bodyMtx))[0][0]);
         glEnable(GL_LIGHTING);
     }
 
-    void drawFaery() const{
+    void drawFaery() const {
         drawFaeryBody();
-        glm::mat4 lWingMtx = glm::translate(glm::mat4(1.0f), glm::vec3(0.1f,0.025f,-0.01f));
-        lWingMtx = glm::rotate(lWingMtx, faeryTheta,glm::vec3(0.0f,1.0f,0.0f));
+        glm::mat4 lWingMtx = glm::translate(glm::mat4(1.0f), glm::vec3(0.1f, 0.025f, -0.01f));
+        lWingMtx = glm::rotate(lWingMtx, faeryTheta, glm::vec3(0.0f, 1.0f, 0.0f));
         glMultMatrixf(&lWingMtx[0][0]);
         {
             drawFaeryWing();
         }
         glMultMatrixf(&(glm::inverse(lWingMtx))[0][0]);
-        glm::mat4 rWingMtx = glm::translate(glm::mat4(1.0f), glm::vec3(-0.1f,0.025f,-0.01f));
-        rWingMtx = glm::rotate(rWingMtx, -faeryTheta,glm::vec3(0.0f,1.0f,0.0f));
+        glm::mat4 rWingMtx = glm::translate(glm::mat4(1.0f), glm::vec3(-0.1f, 0.025f, -0.01f));
+        rWingMtx = glm::rotate(rWingMtx, -faeryTheta, glm::vec3(0.0f, 1.0f, 0.0f));
         glMultMatrixf(&rWingMtx[0][0]);
         {
             drawFaeryWing();
@@ -145,7 +227,7 @@ private:
         glMultMatrixf(&(glm::inverse(rWingMtx))[0][0]);
     }
 
-    void drawHorseBody() const{
+    void drawHorseBody() const {
         // Calculate horse Width
         glm::mat4 horseMtx = glm::scale(glm::mat4(1.0f), glm::vec3(HORSE_WIDTH, HORSE_WIDTH, HORSE_LENGTH));
         glMultMatrixf(&horseMtx[0][0]);
@@ -155,8 +237,7 @@ private:
         glMultMatrixf(&(glm::inverse(horseMtx))[0][0]);
     }
 
-
-    void drawHorseLeg() const{
+    void drawHorseLeg() const {
         // Draw upper leg
         glm::mat4 upperLegMtx = glm::rotate(glm::mat4(1.0f), HORSE_LEG_ANGLE, glm::vec3(1.0f, 0.0f, 0.0f));
         upperLegMtx = glm::translate(upperLegMtx, glm::vec3(0.0f, 0.0f, HORSE_LEG_SIZE / 2));
@@ -181,7 +262,7 @@ private:
         glMultMatrixf(&(glm::inverse(lowerLegMtx))[0][0]);
     }
 
-    void drawHorseHeadAndKneck() const{
+    void drawHorseHeadAndKneck() const {
         // Draw the kneck
         glm::mat4 kneckMtx = glm::rotate(glm::mat4(1.0f), HORSE_KNECK_ANGLE, glm::vec3(1.0f, 0.0f, 0.0f));
         kneckMtx = glm::translate(kneckMtx, glm::vec3(0.0f, 0.0f, HORSE_KNECK_LENGTH / 2));
@@ -205,14 +286,14 @@ private:
         glMultMatrixf(&(glm::inverse(headMtx))[0][0]);
     }
 
-    void drawHorse() const{
+    void drawHorse() const {
         glColor3f(0.3569f, 0.278f, 0.137f);
         drawHorseBody();
         // Draw left front leg
         glm::mat4 lFLegMtx = glm::translate(glm::mat4(1.0f),
                                             glm::vec3(HORSE_WIDTH / 2 + CART_THICKNESS / 2, -HORSE_WIDTH / 2,
                                                       2 * HORSE_LENGTH / 5));
-        lFLegMtx = glm::rotate(lFLegMtx, legTheta1, glm::vec3(1.0f,0.0f,0.0f));
+        lFLegMtx = glm::rotate(lFLegMtx, legTheta1, glm::vec3(1.0f, 0.0f, 0.0f));
         glMultMatrixf(&lFLegMtx[0][0]);
         {
             drawHorseLeg();
@@ -222,7 +303,7 @@ private:
         glm::mat4 rFLegMtx = glm::translate(glm::mat4(1.0f),
                                             glm::vec3(-HORSE_WIDTH / 2 - CART_THICKNESS / 2, -HORSE_WIDTH / 2,
                                                       2 * HORSE_LENGTH / 5));
-        rFLegMtx = glm::rotate(rFLegMtx, legTheta2, glm::vec3(1.0f,0.0f,0.0f));
+        rFLegMtx = glm::rotate(rFLegMtx, legTheta2, glm::vec3(1.0f, 0.0f, 0.0f));
         glMultMatrixf(&rFLegMtx[0][0]);
         {
             drawHorseLeg();
@@ -232,7 +313,7 @@ private:
         glm::mat4 lBLegMtx = glm::translate(glm::mat4(1.0f),
                                             glm::vec3(HORSE_WIDTH / 2 + CART_THICKNESS / 2, -HORSE_WIDTH / 2,
                                                       -HORSE_LENGTH / 4));
-        lBLegMtx = glm::rotate(lBLegMtx, legTheta2, glm::vec3(1.0f,0.0f,0.0f));
+        lBLegMtx = glm::rotate(lBLegMtx, legTheta2, glm::vec3(1.0f, 0.0f, 0.0f));
         glMultMatrixf(&lBLegMtx[0][0]);
         {
             drawHorseLeg();
@@ -242,7 +323,7 @@ private:
         glm::mat4 rBLegMtx = glm::translate(glm::mat4(1.0f),
                                             glm::vec3(-HORSE_WIDTH / 2 - CART_THICKNESS / 2, -HORSE_WIDTH / 2,
                                                       -HORSE_LENGTH / 4));
-        rBLegMtx = glm::rotate(rBLegMtx, legTheta1, glm::vec3(1.0f,0.0f,0.0f));
+        rBLegMtx = glm::rotate(rBLegMtx, legTheta1, glm::vec3(1.0f, 0.0f, 0.0f));
         glMultMatrixf(&rBLegMtx[0][0]);
         {
             drawHorseLeg();
@@ -260,7 +341,7 @@ private:
 
     }
 
-    void drawCartBody() const{
+    void drawCartBody() const {
         // draw bottom
         glColor3f(0.553f, 0.3686f, 0.051f);
         glm::mat4 botttomMtx = glm::scale(glm::mat4(1.0f), glm::vec3(1.0f, CART_THICKNESS, 1.0f));
@@ -314,7 +395,7 @@ private:
 
     }
 
-    void drawWheel() const{
+    void drawWheel() const {
         glColor3f(0.553f, 0.3686f, 0.051f);
         // Draw the spokes
         for (float rad = 0; rad < M_PI; rad += M_PI / 3) {
@@ -338,8 +419,7 @@ private:
         glMultMatrixf(&(glm::inverse(tireMtx))[0][0]);
     }
 
-// Draws the vehicle (a cart)
-    void drawCart() const{
+    void drawCart() const {
         // Draw body
         drawCartBody();
         // Draw left wheel
@@ -363,13 +443,14 @@ private:
 
     }
 
-    void drawCartAndHorse() const{
-        glm::mat4 cartMtx = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, -1.5f/2));
+    void drawCartAndHorse() const {
+        glm::mat4 cartMtx = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, -1.5f / 2));
         glMultMatrixf(&cartMtx[0][0]);
         {
             drawCart();
-        }   glMultMatrixf(&(glm::inverse(cartMtx))[0][0]);
-        glm::mat4 horseMtx = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, HORSE_LEG_SIZE / 2, 1.5f/2));
+        }
+        glMultMatrixf(&(glm::inverse(cartMtx))[0][0]);
+        glm::mat4 horseMtx = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, HORSE_LEG_SIZE / 2, 1.5f / 2));
         glMultMatrixf(&horseMtx[0][0]);
         {
             drawHorse();
@@ -378,9 +459,8 @@ private:
 
     }
 
-    void drawCharacterAndFaery() const{
+    void drawCharacterAndFaery() const {
         drawCartAndHorse();
-        glColor3f(0.0f,0.0f,1.0f);
 
         /*
         glm::mat4 faeryMtx = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f,-0.5f,0.0f));
@@ -395,9 +475,8 @@ private:
         */
     }
 
-    float cartAndHorseTheta = 0.0f;
     float legTheta1 = 0.0f;
-    float legTheta2 = M_PI/4;
+    float legTheta2 = M_PI / 4;
     float legRate = LEG_THETA_RATE;
     float leftWhlTheta = 0;
     float rightWhlTheta = 0;
@@ -405,11 +484,12 @@ private:
     float faeryThetaRate = FPS_ADJUSTMENT * 0.25;
     float faeryTheta = 0.0;
     float faeryDir;
-
     vector<glm::vec3> controlPoints;
 
-    glm::vec3 direction = glm::vec3(0.0f, 0.0f, 0.0f);
-    glm::vec3 orientation;
+    glm::vec3 direction = glm::vec3(0.0f, 0.0f, 1.0f);
+    glm::vec3 bezierPosition = glm::vec3(0.5f, 0.0f, 0.5f);
+    glm::vec3 orientation = glm::vec3(0.0f, 1.0f, 0.0f);
+    float theta = 0.0f;
 
 };
 

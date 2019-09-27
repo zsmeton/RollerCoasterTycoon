@@ -8,7 +8,7 @@
 #include <glm/glm.hpp>
 #include <CSCI441/objects.hpp> // for our 3D objects
 #include "HelperFunctions.h"
-const float FPS_ADJUSTMENT = 0.2;
+constexpr const float FPS_ADJUSTMENT = 0.1;
 
 class HeroBase{
 public:
