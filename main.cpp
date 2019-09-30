@@ -34,8 +34,8 @@
 #include "BezierCurve.h"
 #include "BezierPatch.h"
 #include "Hero1.h"
-#include "Hero2_BP.h"
-#include "Hero2_BP.cpp"
+#include "Hero2.h"
+#include "Hero2.cpp"
 using namespace std;
 
 //*************************************************************************************
@@ -78,7 +78,7 @@ enum EnvironmentObject {
 
 // Characters
 Cart cartHero;
-//Snake apple;
+Snake snakeHero;
 
 // Interaction variables
 // camera movement
@@ -267,6 +267,7 @@ void updateWandersPos() {
 ////////////////////////////////////////////////////////////////////////////////
 void update() {
     updateWandersPos();
+    snakeHero.update();
 }
 
 //*************************************************************************************
@@ -419,6 +420,7 @@ void renderScene(void) {
     update();
     // Draw vehicle
     cartHero.draw();
+    snakeHero.draw();
 }
 
 //*************************************************************************************
@@ -533,6 +535,8 @@ void setupScene() {
     // Compute the hero's position and orientation
     cartHero.setPos(characterPos(cartHero.getBezierPosition()));
     cartHero.setOrientation(characterNormal(cartHero.getBezierPosition()));
+    // TODO: Set snake hero based on location along curve
+    snakeHero.setPos(characterPos(glm::vec3(0.5f,0.0f,0.5f)));
 
 }
 
@@ -610,10 +614,10 @@ int main(int argc, char *argv[]) {
         GLfloat lPosition[4] = {10, 10, 10, 1};
         glLightfv(GL_LIGHT0, GL_POSITION, lPosition);
 
-        //apple.updateThings();
+
 
         renderScene();                    // draw everything to the window
-        //apple.renderScene();
+
 
         glfwSwapBuffers(window);// flush the OpenGL commands and make sure they get rendered!
         glfwPollEvents();                // check for any events and signal to redraw screen

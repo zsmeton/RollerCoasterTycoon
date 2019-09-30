@@ -30,13 +30,15 @@ public:
     constexpr static const float HORSE_KNECK_LENGTH = 0.4;
 
     constexpr static const float VEL = FPS_ADJUSTMENT * 0.01f;
-    constexpr static const float ANGULAR_VEL = FPS_ADJUSTMENT * 0.04f;
-    constexpr static const float WHL_VEL = FPS_ADJUSTMENT * 0.2f;
+    constexpr static const float ANGULAR_VEL = FPS_ADJUSTMENT * 0.2f;
+    constexpr static const float WHL_VEL = FPS_ADJUSTMENT * 0.5f;
+    constexpr static const float WHL_TURN_VEL = WHL_VEL / 2;
     constexpr static const float LEG_THETA_RATE = FPS_ADJUSTMENT * 0.1;
 
     constexpr static const float FAERY_VEL = FPS_ADJUSTMENT * 0.001;
     constexpr static const float F_MAX = std::numeric_limits<float>::max();
     constexpr static const float FAERY_RAD_MAX = 0.6;
+
     glm::vec3 UP = glm::vec3(0.0f,1.0f,0.0f);
 
     Cart() {
@@ -84,15 +86,15 @@ public:
 
     void turnLeft() {
         theta += ANGULAR_VEL;
-        leftWhlTheta -= WHL_VEL / 3;
-        rightWhlTheta += WHL_VEL / 3;
+        leftWhlTheta -= WHL_TURN_VEL;
+        rightWhlTheta += WHL_TURN_VEL;
         recomputeDirection();
     }
 
     void turnRight() {
         theta -= ANGULAR_VEL;
-        leftWhlTheta += WHL_VEL / 3;
-        rightWhlTheta -= WHL_VEL / 3;
+        leftWhlTheta += WHL_TURN_VEL;
+        rightWhlTheta -= WHL_TURN_VEL;
         recomputeDirection();
     }
 

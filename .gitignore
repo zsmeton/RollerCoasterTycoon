@@ -31,6 +31,9 @@
 *.out
 *.app
 
+# Temporary files
+*.tmp
+
 # Cmakelist
 CMakeLists.txt
 cmake-build-debug
