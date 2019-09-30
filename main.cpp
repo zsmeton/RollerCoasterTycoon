@@ -527,7 +527,10 @@ void setupScene() {
     recomputePosition();
     srand(time(NULL));    // seed our random number generator
     generateEnvironmentDL();
+    // Compute the hero's position and orientation
     cartHero.setPos(characterPos(cartHero.getBezierPosition()));
+    cartHero.setOrientation(characterNormal(cartHero.getBezierPosition()));
+
 }
 
 ///*************************************************************************************

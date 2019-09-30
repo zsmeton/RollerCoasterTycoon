@@ -39,7 +39,9 @@ public:
     constexpr static const float FAERY_RAD_MAX = 0.6;
     glm::vec3 UP = glm::vec3(0.0f,1.0f,0.0f);
 
-    Cart() {}
+    Cart() {
+        recomputeDirection();
+    }
 
     void draw() override {
         glm::vec3 rotAxis =glm::cross(UP, orientation);
@@ -478,12 +480,12 @@ private:
     float legTheta1 = 0.0f;
     float legTheta2 = M_PI / 4;
     float legRate = LEG_THETA_RATE;
-    float leftWhlTheta = 0;
-    float rightWhlTheta = 0;
-    float faeryDt = 0.2;
+    float leftWhlTheta = 0.0f;
+    float rightWhlTheta = 0.0f;
+    float faeryDt = 0.2f;
     float faeryThetaRate = FPS_ADJUSTMENT * 0.25;
-    float faeryTheta = 0.0;
-    float faeryDir;
+    float faeryTheta = 0.0f;
+    float faeryDir = 0.0f;
     vector<glm::vec3> controlPoints;
 
     glm::vec3 direction = glm::vec3(0.0f, 0.0f, 1.0f);
