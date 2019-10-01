@@ -79,6 +79,8 @@ enum EnvironmentObject {
 // Characters
 Cart cartHero;
 Snake snakeHero;
+vector<HeroBase*> heros = {&cartHero, &snakeHero};
+vector<FaeryHero*> faeryHeros = {&cartHero, &snakeHero};
 
 // Interaction variables
 // camera movement
@@ -125,21 +127,30 @@ void recomputePosition() {
     camPos = computePosition(cameraTheta, cameraPhi, cameraDist);
 }
 
-// characterPos() //////////////////////////////////////////////////////
-//
-// This function updates keeps the player on the map
-////////////////////////////////////////////////////////////////////////////////
-glm::vec3 characterPos(glm::vec3 position) {
-    position = computePositionBezierPatch(groundControlPoints, position.x,position.z);
-    return position;
+
+bool readWorldFile(char* filename){
+    // Read in control points from file.  Make sure the file can be
+    // opened and handle it appropriately.  return false if there is an error
+    FILE *file;
+    // Check if the file can be opened
+    if ((file = fopen(filename, "r"))) {
+        // Read in faery flight paths:
+        int numFaerys;
+        fscanf(file, "%d", &numFaerys);
+        // Read in all the points
+        for (int i = 0; i < numFaerys; i++) {
+            int faeryNum;
+            fscanf(file, "%d", &faeryNum);
+            if(faeryNum > 0 && faeryNum <= faeryHeros.size()){
+                faeryHeros.at(faeryNum-1)->setFaeryPath(loadControlPoints(file));
+            }else return false;
+        }
+        // Read in bezier surface control points
+
+        return true;
+    }
+    return false;
 }
-
-glm::vec3 characterNormal(glm::vec3 position){
-    vector<glm::vec3> divUV = evaluateBezierPatchDerivative(groundControlPoints, position.x, position.z);
-    return glm::normalize(glm::cross(divUV.at(0), divUV.at(1)));
-}
-
-
 
 //*************************************************************************************
 //
@@ -254,10 +265,9 @@ void updateWandersPos() {
     }
     // Correct the hero's y position
     if(moved){
-        cartHero.setPos(characterPos(cartHero.getBezierPosition()));
-        cartHero.setOrientation(characterNormal(cartHero.getBezierPosition()));
+        cartHero.setPos(characterPos(groundControlPoints, cartHero.getBezierPosition()));
+        cartHero.setOrientation(characterNormal(groundControlPoints, cartHero.getBezierPosition()));
     }
-
 }
 
 // update() /////////////////////////////////////////////////////
@@ -267,7 +277,9 @@ void updateWandersPos() {
 ////////////////////////////////////////////////////////////////////////////////
 void update() {
     updateWandersPos();
-    snakeHero.update();
+    for(auto hero : heros) {
+        hero->update();
+    }
 }
 
 //*************************************************************************************
@@ -418,9 +430,10 @@ void renderScene(void) {
     // Tell OpenGL to execute out display list
     glCallList(environmentDL);
     update();
-    // Draw vehicle
-    cartHero.draw();
-    snakeHero.draw();
+    // Draw heros
+    for(auto hero : heros) {
+        hero->draw();
+    }
 }
 
 //*************************************************************************************
@@ -533,11 +546,10 @@ void setupScene() {
     srand(time(NULL));    // seed our random number generator
     generateEnvironmentDL();
     // Compute the hero's position and orientation
-    cartHero.setPos(characterPos(cartHero.getBezierPosition()));
-    cartHero.setOrientation(characterNormal(cartHero.getBezierPosition()));
+    cartHero.setPos(characterPos(groundControlPoints, cartHero.getBezierPosition()));
+    cartHero.setOrientation(characterNormal(groundControlPoints, cartHero.getBezierPosition()));
     // TODO: Set snake hero based on location along curve
-    snakeHero.setPos(characterPos(glm::vec3(0.5f,0.0f,0.5f)));
-
+    snakeHero.setPos(characterPos(groundControlPoints, glm::vec3(0.5f,0.0f,0.5f)));
 }
 
 ///*************************************************************************************
@@ -574,7 +586,7 @@ int main(int argc, char *argv[]) {
         gets(fileName);
     }
      */
-    //loadControlPoints("controlPoints4.csv");
+    readWorldFile("../WorldFiles/WorldFile1.config");
 
     //  This is our draw loop - all rendering is done here.  We use a loop to keep the window open
     //	until the user decides to close the window and quit the program.  Without a loop, the

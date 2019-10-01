@@ -17,23 +17,21 @@ T restrictVariable(T data, T min, T max) {
 //	the global variable controlPoints
 //
 ////////////////////////////////////////////////////////////////////////////////
-bool loadControlPoints(char *filename) {
+vector<glm::vec3> loadControlPoints(FILE* file) {
     // Read in control points from file.  Make sure the file can be
     // opened and handle it appropriately.  return false if there is an error
-    FILE *file;
     // Check if the file can be opened
-    if ((file = fopen(filename, "r"))) {
-        // Read in the number of points
-        int numPoints;
-        fscanf(file, "%d", &numPoints);
-        // Read in all the points
-        for (int i = 0; i < numPoints; i++) {
-            int x, y, z;
-            fscanf(file, "%d,%d,%d", &x, &y, &z);
-        }
-        return true;
+    // Read in the number of points
+    int numPoints;
+    vector<glm::vec3> controlPoints;
+    fscanf(file, "%d", &numPoints);
+    // Read in all the points
+    for (int i = 0; i < numPoints; i++) {
+        int x, y, z;
+        fscanf(file, "%d,%d,%d", &x, &y, &z);
+        controlPoints.emplace_back(glm::vec3(x,y,z));
     }
-    return false;
+    return controlPoints;
 }
 
 

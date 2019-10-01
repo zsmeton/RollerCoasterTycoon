@@ -164,12 +164,21 @@ void drawSurfaceControlPointConnections(const vector<glm::vec3> &controlPoints) 
  * @param v the z position [0,1]
  * @return [x,y,z]
  */
-//TODO: implement for multiple patches
+
 glm::vec3 computePositionBezierPatch(const vector<glm::vec3> &controlPoints, const float u, const float v) {
     // Evaluate
     return evaluateBezierPatch(controlPoints, u, v);
 }
 
+glm::vec3 characterPos(const vector<glm::vec3> &controlPoints, glm::vec3 position) {
+    position = computePositionBezierPatch(controlPoints, position.x,position.z);
+    return position;
+}
+
+glm::vec3 characterNormal(const vector<glm::vec3> &controlPoints, glm::vec3 position){
+    vector<glm::vec3> divUV = evaluateBezierPatchDerivative(controlPoints, position.x, position.z);
+    return glm::normalize(glm::cross(divUV.at(0), divUV.at(1)));
+}
 
 /*!
  * Computes the derivative of the bezier curve at time t

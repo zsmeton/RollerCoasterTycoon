@@ -20,7 +20,6 @@ using namespace std;
 
 
 Snake::Snake() {
-    //TODO: load in control points
     recomputeSnakeOrientation();
 }
 
@@ -38,8 +37,6 @@ void Snake::recomputeSnakeOrientation() {
     snakeDir.y /= magnitude;
     snakeDir.z /= magnitude;
 }
-
-float Snake::getRand() { return rand() / (float) RAND_MAX; }
 
 
 void Snake::drawSnakeEye() {
@@ -258,16 +255,9 @@ void Snake::draw() {
     glMultMatrixf(&transSnake[0][0]);{
         glm::mat4 rotateSnakechange = glm::rotate(glm::mat4(1.0f), -snakeTheta, glm::vec3(0.0f, 1.0, 0.0f));
         glMultMatrixf(&rotateSnakechange[0][0]);{
-            /*
-            drawFaery();
-            glBegin(GL_LINE_STRIP);{
-                glColor3f(1.0f, 1.0f, 0.0f);
-                glLineWidth(3.0f);
-                for (auto point : controlPoints) {
-                    glVertex3f(point[0], point[1], point[2]);
-                }
-            }glEnd();
-            */
+            if(faeryMovement.size() != 0) {
+                drawFaery();
+            }
             glm::mat4 rotateSnake = glm::rotate(glm::mat4(1.0f), PI / 2, glm::vec3(0.0f, 0.0, 1.0f));
             rotateSnake = glm::rotate(rotateSnake, PI/2, glm::vec3(0.0f,1.0f,0.0f));
             glMultMatrixf(&rotateSnake[0][0]);{
@@ -282,7 +272,21 @@ void Snake::draw() {
 }
 
 void Snake::update() {
-    //faeryIndex = (faeryIndex + 1) % faeryMovement.size();
+    if(faeryMovement.size() != 0) {
+        faeryIndex = (faeryIndex + 1) % faeryMovement.size();
+    }
+}
+
+void Snake::setFaeryPath(const vector<glm::vec3>& controlPoints){
+    int max_i = controlPoints.size()-4;
+    if(max_i < 0) return;
+    if(max_i > 0){
+        max_i += (controlPoints.size()-4)/3;
+    }
+    faeryMovement.clear();
+    for(float i = 0; i < max_i; i += FPS_ADJUSTMENT*0.01){
+        faeryMovement.emplace_back(computePositionBezierCurve(controlPoints, i));
+    }
 }
 
 

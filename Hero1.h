@@ -13,11 +13,12 @@
 #include "HelperFunctions.h"
 #include "HeroBase.h"
 #include "BezierCurve.h"
+#include "FaeryHero.h"
 
 using namespace std;
 
 
-class Cart : public HeroBase {
+class Cart : public HeroBase, public FaeryHero{
 public:
     constexpr static const float CART_WIDTH = 1.0f;
     constexpr static const float CART_THICKNESS = 0.1f;
@@ -35,7 +36,7 @@ public:
     constexpr static const float WHL_TURN_VEL = WHL_VEL / 2;
     constexpr static const float LEG_THETA_RATE = FPS_ADJUSTMENT * 0.1;
 
-    constexpr static const float FAERY_VEL = FPS_ADJUSTMENT * 0.001;
+    constexpr static const float FAERY_VEL = FPS_ADJUSTMENT * 0.05;
     constexpr static const float F_MAX = std::numeric_limits<float>::max();
     constexpr static const float FAERY_RAD_MAX = 0.6;
 
@@ -65,7 +66,9 @@ public:
     }
 
     void update() override {
-
+        if(controlPoints.size() !=0) {
+            updateFaery();
+        }
     }
 
     void moveForward() {
@@ -124,6 +127,10 @@ public:
 
     void setOrientation(const glm::vec3 &orientation) {
         this->orientation = orientation;
+    }
+
+    void setFaeryPath(const vector<glm::vec3>& controlPoints) override{
+        this->controlPoints = controlPoints;
     }
 
 private:
@@ -465,18 +472,17 @@ private:
 
     void drawCharacterAndFaery() const {
         drawCartAndHorse();
-
-        /*
-        glm::mat4 faeryMtx = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f,-0.5f,0.0f));
-        glm::vec3 faeryPos = computePositionBezierCurve(controlPoints, faeryDt);
-        faeryMtx = glm::translate(faeryMtx, faeryPos);
-        faeryMtx = glm::rotate(faeryMtx, static_cast<float>(-faeryDir+M_PI/2), glm::vec3(0.0f,1.0f,0.0f));
-        glMultMatrixf(&faeryMtx[0][0]);
-        {
-            drawFaery();
+        if(controlPoints.size() != 0) {
+            glm::mat4 faeryMtx = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, -0.5f, 0.0f));
+            glm::vec3 faeryPos = computePositionBezierCurve(controlPoints, faeryDt);
+            faeryMtx = glm::translate(faeryMtx, faeryPos);
+            faeryMtx = glm::rotate(faeryMtx, static_cast<float>(-faeryDir + M_PI / 2), glm::vec3(0.0f, 1.0f, 0.0f));
+            glMultMatrixf(&faeryMtx[0][0]);
+            {
+                drawFaery();
+            }
+            glMultMatrixf(&(glm::inverse(faeryMtx))[0][0]);
         }
-        glMultMatrixf(&(glm::inverse(faeryMtx))[0][0]);
-        */
     }
 
     float legTheta1 = 0.0f;

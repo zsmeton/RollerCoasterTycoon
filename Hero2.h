@@ -28,13 +28,18 @@
 #include <fstream>			// for file I/O
 #include <vector>				// for vector
 #include "HeroBase.h"
+#include "BezierCurve.h"
+#include "FaeryHero.h"
 
-class Snake: public HeroBase {
+class Snake: public HeroBase, public FaeryHero{
 
 public:
     Snake();                            //Constructor
     void draw() override;
     void update() override;
+
+    // Getters and setters
+    void setFaeryPath(const vector<glm::vec3>& controlPoints) override;
 
 
 private:
@@ -48,10 +53,7 @@ private:
     int faeryIndex = 0;                 //
     float sparkleRotTheta = 0;          //
 
-    GLuint environmentDL;               // display list for the 'city'
     float PI = 3.141592;                //
-
-    vector<glm::vec3> controlPoints;    //
 
     void recomputeOrientation();
     void recomputeSnakeOrientation();
