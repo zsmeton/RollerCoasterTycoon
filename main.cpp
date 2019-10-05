@@ -61,7 +61,7 @@ const float CAM_ANGULAR_VEL = FPS_ADJUSTMENT*0.05f;                // camera's r
 // Environment drawing variables
 GLuint environmentDL;                            // display list for the 'city'
 
-vector<glm::vec3> groundControlPoints;
+vector<vector<vector<glm::vec3>>> groundControlPoints;
 const int MAP_SIZE = 100;
 const int GRID_START = -MAP_SIZE;
 const int GRID_END = MAP_SIZE;
@@ -94,13 +94,7 @@ bool ctrlKey;                                        // status of the 'Ctrl' Key
 // Helper Functions
 ////////////////////////////////////////////////////////////////////////////////
 
-// getRand() ///////////////////////////////////////////////////////////////////
-//
-//  Simple helper function to return a random number between 0.0f and 1.0f.
-//
-////////////////////////////////////////////////////////////////////////////////
-float getRand() { return rand() / (float) RAND_MAX; }
-
+bool loadFaeryPaths(const FILE *file);
 
 // computePosition() //////////////////////////////////////////////////////
 //
@@ -127,6 +121,24 @@ void recomputePosition() {
     camPos = computePosition(cameraTheta, cameraPhi, cameraDist);
 }
 
+/*!
+ * Reads in the faery paths from the world file
+ * @param file an open readable file
+ * @return true if success, false if failure
+ */
+bool loadFaeryPaths(FILE *file) {
+    // Read in faery flight paths:
+    int numFaerys;
+    fscanf(file, "%d", &numFaerys);
+    if(numFaerys > faeryHeros.size()){
+        return false;
+    }
+    // Read in all the points
+    for (int i = 0; i < numFaerys; i++) {
+        faeryHeros.at(i)->setFaeryPath(loadControlPoints(file));
+    }
+    return true;
+}
 
 bool readWorldFile(char* filename){
     // Read in control points from file.  Make sure the file can be
@@ -134,23 +146,20 @@ bool readWorldFile(char* filename){
     FILE *file;
     // Check if the file can be opened
     if ((file = fopen(filename, "r"))) {
-        // Read in faery flight paths:
-        int numFaerys;
-        fscanf(file, "%d", &numFaerys);
-        // Read in all the points
-        for (int i = 0; i < numFaerys; i++) {
-            int faeryNum;
-            fscanf(file, "%d", &faeryNum);
-            if(faeryNum > 0 && faeryNum <= faeryHeros.size()){
-                faeryHeros.at(faeryNum-1)->setFaeryPath(loadControlPoints(file));
-            }else return false;
+        if(!loadFaeryPaths(file)){
+            fprintf(stderr, "More faery paths than faery's");
+            exit(-28);
         }
         // Read in bezier surface control points
+        groundControlPoints = loadControlPointsBezierPatch(file);
+        cartHero.setMaxZ(groundControlPoints.at(0).size()-0.00001f);
+        cartHero.setMaxX(groundControlPoints.size() - 0.00001f);
 
         return true;
     }
     return false;
 }
+
 
 //*************************************************************************************
 //
@@ -267,6 +276,7 @@ void updateWandersPos() {
     if(moved){
         cartHero.setPos(characterPos(groundControlPoints, cartHero.getBezierPosition()));
         cartHero.setOrientation(characterNormal(groundControlPoints, cartHero.getBezierPosition()));
+        printf("%f,%f,%f\n", cartHero.getX(), cartHero.getY(), cartHero.getZ());
     }
 }
 
@@ -285,30 +295,6 @@ void update() {
 //*************************************************************************************
 //
 // Rendering / Drawing Functions - this is where the magic happens!
-
-
-
-
-// drawGrid() //////////////////////////////////////////////////////////////////
-//
-//  Function to draw a grid in the XZ-Plane using OpenGL 2D Primitives (GL_LINES)
-//
-////////////////////////////////////////////////////////////////////////////////
-void drawGrid() {
-    // Creating a realistic topography
-
-    int spacing = (GRID_END-GRID_START)/3;
-    float height = 0.2*(GRID_END-GRID_START);
-    for (int i = GRID_START; i < GRID_END; i+= spacing) {
-        for (int j = GRID_START; j < GRID_END; j+= spacing) {
-            groundControlPoints.emplace_back(glm::vec3((float)i, (float)(height*getRand()-height/2), (float)j));
-        }
-    }
-    glColor3f(1.0f,1.0f,1.0f);
-    GLfloat matColorD[4] = { 1.0f,1.0f,1.0f, 1.0f };
-    glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE, matColorD);
-    drawBezierPatch(groundControlPoints);
-}
 
 // Draw a "house" a rectangle of random color and height
 // At the x and z location at the map height
@@ -413,7 +399,7 @@ void generateEnvironmentDL() {
     environmentDL = glGenLists(GLsizei(1));
     glNewList(environmentDL, GL_COMPILE);
     {
-        drawGrid();
+        drawBezierPatch(groundControlPoints);
         //drawEnvironment();
     }
     glEndList();
@@ -565,7 +551,6 @@ int main(int argc, char *argv[]) {
     // GLFW sets up our OpenGL context so must be done first
     GLFWwindow *window = setupGLFW();    // initialize all of the GLFW specific information releated to OpenGL and our window
     setupOpenGL();                                        // initialize all of the OpenGL specific information
-    setupScene();                                            // initialize objects in our scene
 
     fprintf(stdout, "[INFO]: /--------------------------------------------------------\\\n");
     fprintf(stdout, "[INFO]: | OpenGL Information                                     |\n");
@@ -586,7 +571,9 @@ int main(int argc, char *argv[]) {
         gets(fileName);
     }
      */
-    readWorldFile("../WorldFiles/WorldFile1.config");
+    readWorldFile("WorldFiles/WorldFile1.config");
+
+    setupScene();                                            // initialize objects in our scene
 
     //  This is our draw loop - all rendering is done here.  We use a loop to keep the window open
     //	until the user decides to close the window and quit the program.  Without a loop, the
@@ -623,7 +610,7 @@ int main(int argc, char *argv[]) {
                                         glm::vec3(0, 1, 0));        // up vector is (0, 1, 0) - positive Y
         // multiply by the look at matrix - this is the same as our view martix
         glMultMatrixf(&viewMtx[0][0]);
-        GLfloat lPosition[4] = {10, 10, 10, 1};
+        GLfloat lPosition[4] = {0, 100, 0, 1};
         glLightfv(GL_LIGHT0, GL_POSITION, lPosition);
 
 

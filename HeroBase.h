@@ -19,7 +19,7 @@ public:
         return pos.x;
     }
 
-    void setX(const float& x){
+    virtual void setX(const float& x){
         pos.x = x;
     }
 
@@ -27,7 +27,7 @@ public:
         return pos.y;
     }
 
-    void setY(const float& y){
+    virtual void setY(const float& y){
         pos.y = y;
     }
 
@@ -35,7 +35,7 @@ public:
         return pos.z;
     }
 
-    void setZ(const float& z){
+    virtual void setZ(const float& z){
         pos.z = z;
     }
 
@@ -43,7 +43,7 @@ public:
         return pos;
     }
 
-    void setPos(const glm::vec3 &pos) {
+    virtual void setPos(const glm::vec3 &pos) {
         HeroBase::pos = pos;
     }
 

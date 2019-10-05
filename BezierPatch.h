@@ -12,9 +12,10 @@
 #include <vector>               // for vector data structure
 #include <bits/stdc++.h>        // Fo
 #include "BezierCurve.h"
+#include "HelperFunctions.h"
 
 using namespace std;
-
+// helpers:
 /*!
  * Checks if the follow inputs are correct
  * @param controlPoints is of size==16
@@ -34,7 +35,7 @@ void _correctInput(const vector<glm::vec3>& controlPoints, float u, float v){
  * @param v
  * @return [x,y,z]
  */
-glm::vec3 evaluateBezierPatch(vector<glm::vec3> controlPoints, float u, float v) {
+glm::vec3 _evaluateBezierPatch(vector<glm::vec3> controlPoints, float u, float v) {
     // Check that inputs are correct
     _correctInput(controlPoints,u,v);
     // Evaluate
@@ -58,7 +59,7 @@ glm::vec3 evaluateBezierPatch(vector<glm::vec3> controlPoints, float u, float v)
  * @return
  */
 // TODO: IMPLEMENT
-vector<glm::vec3> evaluateBezierPatchDerivative(vector<glm::vec3> controlPoints, float u, float v) {
+vector<glm::vec3> _evaluateBezierPatchDerivative(vector<glm::vec3> controlPoints, float u, float v) {
     _correctInput(controlPoints,u,v);
     // Derivative in v, find control points along v axis take derivative of bezier curve
     glm::vec3 divV0 = evaluateBezierCurve(controlPoints.at(0), controlPoints.at(1), controlPoints.at(2),
@@ -86,8 +87,8 @@ vector<glm::vec3> evaluateBezierPatchDerivative(vector<glm::vec3> controlPoints,
     return result;
 }
 
-glm::vec3 evaluateBezierPatchNormal(const vector<glm::vec3>& controlPoints, float u, float v){
-    vector<glm::vec3> divUV = evaluateBezierPatchDerivative(controlPoints, u, v);
+glm::vec3 _evaluateBezierPatchNormal(const vector<glm::vec3>& controlPoints, float u, float v){
+    vector<glm::vec3> divUV = _evaluateBezierPatchDerivative(controlPoints, u, v);
     glm::vec3 norm = glm::normalize(glm::cross(divUV.at(0), divUV.at(1)));
     return norm;
 }
@@ -99,43 +100,49 @@ glm::vec3 evaluateBezierPatchNormal(const vector<glm::vec3>& controlPoints, floa
  * @param controlPoints
  * @param resolution
  */
-void renderBezierPatch(const vector<glm::vec3>& controlPoints, int resolution) {
-
+void _renderBezierPatch(const vector<glm::vec3>& controlPoints, int resolution) {
     assert(controlPoints.size() == 16);
+    glColor3f(0.0f,0.6f,0.0f);
+    glDisable(GL_COLOR_MATERIAL);
+    GLfloat diffColorD[4] = { 0.0f,0.6f, 0.0f, 1.0f };
+    glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE, diffColorD);
     float spacing = 1 / float(resolution);
     for (float i = 0; i < 1; i += spacing) {
         for (float j = 0; j < 1; j += spacing) {
-            glColor3f(1.0f,1.0f,1.0f);
             glBegin(GL_TRIANGLE_STRIP);
             {              // Make this into a quad
-                glm::vec3 norm0 = evaluateBezierPatchNormal(controlPoints, i, j);
+                glm::vec3 norm0 = _evaluateBezierPatchNormal(controlPoints, i, j);
                 glNormal3f(norm0.x,norm0.y,norm0.z);
-                glm::vec3 p0 = evaluateBezierPatch(controlPoints, i, j);
+                glm::vec3 p0 = _evaluateBezierPatch(controlPoints, i, j);
                 glVertex3f(p0.x, p0.y, p0.z);
-                glm::vec3 norm2 = evaluateBezierPatchNormal(controlPoints, i+spacing, j);
+                glm::vec3 norm2 = _evaluateBezierPatchNormal(controlPoints, i + spacing, j);
                 glNormal3f(norm2.x,norm2.y,norm2.z);
-                glm::vec3 p2 = evaluateBezierPatch(controlPoints, i + spacing, j);
+                glm::vec3 p2 = _evaluateBezierPatch(controlPoints, i + spacing, j);
                 glVertex3f(p2.x, p2.y, p2.z);
-                glm::vec3 norm1 = evaluateBezierPatchNormal(controlPoints, i, j+spacing);
+                glm::vec3 norm1 = _evaluateBezierPatchNormal(controlPoints, i, j + spacing);
                 glNormal3f(norm1.x,norm1.y,norm1.z);
-                glm::vec3 p1 = evaluateBezierPatch(controlPoints, i, j + spacing);
+                glm::vec3 p1 = _evaluateBezierPatch(controlPoints, i, j + spacing);
                 glVertex3f(p1.x, p1.y, p1.z);
-                glm::vec3 norm3 = evaluateBezierPatchNormal(controlPoints, i + spacing, j + spacing);
+                glm::vec3 norm3 = _evaluateBezierPatchNormal(controlPoints, i + spacing, j + spacing);
                 glNormal3f(norm3.x,norm3.y,norm3.z);
-                glm::vec3 p3 = evaluateBezierPatch(controlPoints, i + spacing, j + spacing);
+                glm::vec3 p3 = _evaluateBezierPatch(controlPoints, i + spacing, j + spacing);
                 glVertex3f(p3.x, p3.y, p3.z);
             };glEnd();
         }
     }
+    glEnable(GL_COLOR_MATERIAL);
 }
 
 /*!
  * Draws a bezier patch defined by controlPoints
  * @param controlPoints
  */
- //TODO: Implement multiple patch render
-void drawBezierPatch(const vector<glm::vec3>& controlPoints){
-    renderBezierPatch(controlPoints, RESOLUTION);
+void drawBezierPatch(const vector<vector<vector<glm::vec3>>>& controlPoints) {
+    for (const auto &row : controlPoints){
+        for (const auto &column : row) {
+            _renderBezierPatch(column, RESOLUTION);
+        }
+    }
 }
 
 /*!
@@ -143,52 +150,97 @@ void drawBezierPatch(const vector<glm::vec3>& controlPoints){
  * @param controlCage
  * @param controlPointRad
  */
+ //TODO: multipe patches
 void drawPatchControlPoints(const vector<glm::vec3> &controlPoints, const float controlPointRad) {
     drawControlPoints(controlPoints, controlPointRad);
 }
 
 /*!
- * Draws a yellow line between the control points in strip style
- * @param controlPoints
- */
-//TODO: IMPLEMENT
-void drawSurfaceControlPointConnections(const vector<glm::vec3> &controlPoints) {
-    assert(false);
-}
-
-
-/*!
  * Computes the position of a point along the bezier curve at time step t
  * @param controlPoints the points defining the bezier curve
- * @param u the x position [0,1]
- * @param v the z position [0,1]
+ * @param u the x position [0,number_of_patches]
+ * @param v the z position [0,number_of_patches]
  * @return [x,y,z]
  */
-
-glm::vec3 computePositionBezierPatch(const vector<glm::vec3> &controlPoints, const float u, const float v) {
-    // Evaluate
-    return evaluateBezierPatch(controlPoints, u, v);
+glm::vec3 computePositionBezierPatch(const vector<vector<vector<glm::vec3>>> &controlPoints, float u, float v) {
+    return _evaluateBezierPatch(controlPoints.at(int(u)).at(int(v)), fmod(u,1.0f), fmod(v,1.0f));
 }
 
-glm::vec3 characterPos(const vector<glm::vec3> &controlPoints, glm::vec3 position) {
+glm::vec3 computeNormalBezierPatch(const vector<vector<vector<glm::vec3>>> &controlPoints, float u, float v){
+    return _evaluateBezierPatchNormal(controlPoints.at(int(u)).at(int(v)), fmod(u,1.0f), fmod(v,1.0f));
+}
+
+glm::vec3 characterPos(const vector<vector<vector<glm::vec3>>> &controlPoints, glm::vec3 position) {
     position = computePositionBezierPatch(controlPoints, position.x,position.z);
     return position;
 }
 
-glm::vec3 characterNormal(const vector<glm::vec3> &controlPoints, glm::vec3 position){
-    vector<glm::vec3> divUV = evaluateBezierPatchDerivative(controlPoints, position.x, position.z);
-    return glm::normalize(glm::cross(divUV.at(0), divUV.at(1)));
+glm::vec3 characterNormal(const vector<vector<vector<glm::vec3>>> &controlPoints, glm::vec3 position){
+    return computeNormalBezierPatch(controlPoints, position.x, position.z);
+}
+vector<vector<vector<glm::vec3>>> loadControlPointsBezierPatch(FILE* file){
+    /*
+     * the control points are loaded row by row across u then v
+     * 32 control points [][]
+     *
+     * 48 control points []
+     *                   [][]
+     *
+     * 64 control points [][]
+     *                   [][]
+     */
+
+    int numPoints;
+    fscanf(file, "%d", &numPoints);
+    // Calculate number of rows and columns
+    int rows = 1;
+    float _columns = 1;
+    for(int i = 2; i <= numPoints/16; i ++){
+        _columns += 1;
+        if(floor(_columns/rows) > rows +1){
+            rows += 1;
+        }
+    }
+    int columns = int(ceil(_columns)/rows);
+
+    // Read in all the points
+    vector<vector<vector<glm::vec3>>> controlPoints;
+    for(int i = 0; i < rows; i ++) {
+        vector<vector<glm::vec3>> row;
+        for(int j = 0; j < columns; j ++) {
+            vector<glm::vec3> column;
+            for (int k = 0; k < 16; k++) {
+                int x, y, z;
+                fscanf(file, "%d,%d,%d", &x, &y, &z);
+                column.emplace_back(glm::vec3(x, y, z));
+            }
+            row.emplace_back(column);
+        }
+        controlPoints.emplace_back(row);
+    }
+    return controlPoints;
 }
 
-/*!
- * Computes the derivative of the bezier curve at time t
- * @param controlPoints the points defining the bezier curve
- * @param t the time step along the curve
- * @return [dx,dy,z]
- */
-//TODO: IMPLEMENT
-glm::vec3 computeRotationBezierPatch(const vector<glm::vec3> &controlPoints, const float dt) {
-    assert(false);
+vector<glm::vec3> generateRandomBezierPatch(int patchEnd, int patchStart, int height){
+    vector<glm::vec3> controlPoints;
+    for(int k = 0; k < 2; k++) {
+        int spacing = (patchEnd-patchStart)/(6);
+        int temp = (patchEnd-patchStart)/2;
+        for (int i = patchStart+temp*k; i < patchEnd-temp*(1-k); i += spacing) {
+            for (int j = patchStart; j < patchEnd; j++){}
+        }
+    }
+    FILE* file;
+    if((file = fopen("BezierSurface1.txt", "w"))) {
+        auto intRound = [](float a) { return int(round(a)); };
+        fprintf(file, "%zu\n", controlPoints.size());
+        for (auto point : controlPoints) {
+            fprintf(file, "%d,%d,%d\n", intRound(point.x), intRound(point.y), intRound(point.z));
+        }
+        fclose(file);
+    }else{
+        printf("Bezier patch was not put in file..");
+    }
 }
 
 #endif //MP_BEZIERPATCH_H

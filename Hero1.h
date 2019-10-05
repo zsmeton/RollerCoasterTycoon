@@ -44,6 +44,7 @@ public:
 
     Cart() {
         recomputeDirection();
+        restrictBezierPosition();
     }
 
     void draw() override {
@@ -54,7 +55,7 @@ public:
         // Rotate to match the terrain
         vehicleMtx = glm::rotate(vehicleMtx, rad, rotAxis);
         // Translate upwards to keep wheels out of ground
-        vehicleMtx = glm::translate(vehicleMtx, glm::vec3(0.0f,CART_WHEEL_RADIUS+CART_THICKNESS / 2, 0.0f));
+        vehicleMtx = glm::translate(vehicleMtx, glm::vec3(0.0f,CART_WHEEL_RADIUS, 0.0f));
         // Orient along direction
         vehicleMtx = glm::rotate(vehicleMtx, theta, glm::vec3(0.0f, 1.0f, 0.0f));
         glMultMatrixf(&vehicleMtx[0][0]);
@@ -121,6 +122,14 @@ public:
         this->direction = direction;
     }
 
+    void setMaxX(float maxX) {
+        max_x = maxX;
+    }
+
+    void setMaxZ(float maxZ) {
+        max_z = maxZ;
+    }
+
     const glm::vec3 &getOrientation() const {
         return orientation;
     }
@@ -153,8 +162,8 @@ private:
      * This function keeps the bezier position between 0 and 1
      */
     void restrictBezierPosition() {
-        bezierPosition.x = restrictVariable<float>(bezierPosition.x, 0, 1);
-        bezierPosition.z = restrictVariable<float>(bezierPosition.z, 0, 1);
+        bezierPosition.x = restrictVariable<float>(bezierPosition.x, 0, max_x);
+        bezierPosition.z = restrictVariable<float>(bezierPosition.z, 0, max_z);
     }
 
     void updateFaery() {
@@ -500,7 +509,8 @@ private:
     glm::vec3 bezierPosition = glm::vec3(0.5f, 0.0f, 0.5f);
     glm::vec3 orientation = glm::vec3(0.0f, 1.0f, 0.0f);
     float theta = 0.0f;
-
+    float max_x = 1;
+    float max_z = 1;
 };
 
 #endif //MP_HERO1_H
