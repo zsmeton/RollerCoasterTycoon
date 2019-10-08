@@ -17,7 +17,6 @@
 
 using namespace std;
 
-
 class Cart : public HeroBase, public FaeryHero{
 public:
     constexpr static const float CART_WIDTH = 1.0f;
@@ -51,18 +50,18 @@ public:
         glm::vec3 rotAxis =glm::cross(UP, orientation);
         float rad = acos(glm::dot( glm::normalize(orientation), glm::normalize(UP)));
         // Translate to the position
-        glm::mat4 vehicleMtx = glm::translate(glm::mat4(1.0f), getPos());
+        worldMtx = glm::translate(glm::mat4(1.0f), getPos());
         // Rotate to match the terrain
-        vehicleMtx = glm::rotate(vehicleMtx, rad, rotAxis);
+        worldMtx = glm::rotate(worldMtx, rad, rotAxis);
         // Translate upwards to keep wheels out of ground
-        vehicleMtx = glm::translate(vehicleMtx, glm::vec3(0.0f,CART_WHEEL_RADIUS+CART_THICKNESS/10, 0.0f));
+        worldMtx = glm::translate(worldMtx, glm::vec3(0.0f,CART_WHEEL_RADIUS+CART_THICKNESS/10, 0.0f));
         // Orient along direction
-        vehicleMtx = glm::rotate(vehicleMtx, theta, glm::vec3(0.0f, 1.0f, 0.0f));
-        glMultMatrixf(&vehicleMtx[0][0]);
+        worldMtx = glm::rotate(worldMtx, theta, glm::vec3(0.0f, 1.0f, 0.0f));
+        glMultMatrixf(&worldMtx[0][0]);
         {
             drawCharacterAndFaery();
         }
-        glMultMatrixf(&(glm::inverse(vehicleMtx))[0][0]);
+        glMultMatrixf(&(glm::inverse(worldMtx))[0][0]);
 
     }
 
@@ -114,7 +113,7 @@ public:
         this->controlPoints = controlPoints;
     }
 
-    const glm::vec3 &getDirection() const {
+    glm::vec3 &getDirection(){
         return direction;
     }
 

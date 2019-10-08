@@ -36,6 +36,7 @@
 #include "CameraBase.h"
 #include "ArcBallCamera.h"
 #include "FreeCamera.h"
+#include "FirstPersonCamera.h"
 
 using namespace std;
 
@@ -52,9 +53,16 @@ using namespace std;
 // for later on in case the window gets resized.
 int windowWidth = 960, windowHeight = 720;
 
+// Minimap window settings
+const GLint MINI_MAP_SIZE = 200;
+GLint miniWindowStartX = windowWidth - MINI_MAP_SIZE;
+GLint miniWindowStartY = windowHeight - MINI_MAP_SIZE;
+
 // Camera variables
 ArcBallCamera arcBallCamera;
 FreeCamera freeCamera;
+FirstPersonCamera* FPVCam;
+int FPVCharacter = 0;
 CameraBase* cam = &arcBallCamera;
 
 
@@ -234,7 +242,7 @@ static void mouse_button_callback(GLFWwindow *window, int button, int action, in
 void updateWandersPos() {
     bool moved = false;
     // Only move the wander if the camera target is the cart hero
-    if(cam == &arcBallCamera && arcBallCamera.getTarget() == &cartHero.getPos()) {
+    if((cam == &arcBallCamera && arcBallCamera.getTarget() == &cartHero.getPos())) {
         if (keysDown[GLFW_KEY_W]) {
             cartHero.moveForward();
             moved = true;
@@ -262,17 +270,25 @@ void updateWandersPos() {
 void updateCamera(){
     // If key 1,2,3 set the camera target to different heros
     if(!(keysDown[GLFW_KEY_LEFT_SHIFT]||keysDown[GLFW_KEY_RIGHT_SHIFT])){
+        int targetIndex = -1;
         if(keysDown[GLFW_KEY_1]){
-            arcBallCamera.setTarget(&(heros.at(0)->getPos()));
+            targetIndex = 0;
         }else if(keysDown[GLFW_KEY_2]){
-            arcBallCamera.setTarget(&(heros.at(1)->getPos()));
+            targetIndex = 1;
+        }else if(keysDown[GLFW_KEY_3]){
+            //targetIndex = 2;
+        }
+        if(targetIndex != -1) {
+            arcBallCamera.setTarget(&(heros.at(targetIndex)->getPos()));
         }
     }else{
         // change camera model
         if(keysDown[GLFW_KEY_1]){
             cam = &arcBallCamera;
         }else if(keysDown[GLFW_KEY_2]){
-            cam = nullptr;
+            FPVCharacter += 1;
+            FPVCharacter %= heros.size();
+            FPVCam = &(heros.at(FPVCharacter)->getFPVCam());
         }else if(keysDown[GLFW_KEY_3]){
             cam = &freeCamera;
         }
@@ -293,6 +309,7 @@ void update() {
     for(auto hero : heros) {
         hero->update();
     }
+    //firstPersonCamera.setTargetDir(&cartHero.getDirection());
 
 }
 
@@ -337,6 +354,7 @@ void renderScene(void) {
     for(auto hero : heros) {
         hero->draw();
     }
+    //firstPersonCamera.draw();
 }
 
 //*************************************************************************************
@@ -447,6 +465,9 @@ void setupCameras(){
     freeCamera.setPhi(M_PI / 2.8f);
     freeCamera.setPos(glm::vec3(0.0f,20.0f,0.0f));
     freeCamera.update();
+
+    FPVCam = &heros.at(0)->getFPVCam();
+    FPVCharacter = 0;
 }
 
 //
@@ -481,9 +502,51 @@ void setupScene() {
     snakeHero.setPos(characterPos(groundControlPoints, glm::vec3(0.5f,0.0f,0.5f)));
 }
 
+
 ///*************************************************************************************
 //
 // Our main function
+
+void mainScreen(GLint framebufferWidth, GLint framebufferHeight){
+    // update the viewport - tell OpenGL we want to render to the whole window
+    glViewport(0, 0, framebufferWidth, framebufferHeight);
+
+    glMatrixMode(GL_MODELVIEW);    // make the ModelView matrix current to be modified by any transformations
+    glLoadIdentity();                            // set the matrix to be the identity
+
+    // set up our look at matrix to position our camera
+    glm::mat4 viewMtx = cam->getLookAt();
+    // multiply by the look at matrix - this is the same as our view martix
+    glMultMatrixf(&viewMtx[0][0]);
+    GLfloat lPosition[4] = {0, 100, 0, 1};
+    glLightfv(GL_LIGHT0, GL_POSITION, lPosition);
+
+    renderScene();                    // draw everything to the window
+}
+
+void miniMap(GLint framebufferWidth, GLint framebufferHeight){
+    // Do minimap render
+    glScissor(miniWindowStartX, miniWindowStartY, framebufferWidth - miniWindowStartX,
+              framebufferHeight - miniWindowStartY);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    // Set the Scissor to the full screen again
+    glScissor(0, 0, framebufferWidth, framebufferHeight);
+    // update the viewport - This is for the minimap view
+    glViewport(miniWindowStartX, miniWindowStartY, framebufferWidth - miniWindowStartX,
+               framebufferHeight - miniWindowStartY);
+
+    glMatrixMode(GL_MODELVIEW);    // make the ModelView matrix current to be modified by any transformations
+    glLoadIdentity();                            // set the matrix to be the identity
+
+    // set up our look at matrix to position our camera
+    glm::mat4 miniViewMtx = FPVCam->getLookAt();
+    // multiply by the look at matrix - this is the same as our view martix
+    glMultMatrixf(&miniViewMtx[0][0]);
+    GLfloat lPosition[4] = {0, 100, 0, 1};
+    glLightfv(GL_LIGHT0, GL_POSITION, lPosition);
+
+    renderScene();                    // draw everything to the window
+}
 
 //
 //	int main( int argc, char *argv[] )
@@ -530,20 +593,9 @@ int main(int argc, char *argv[]) {
         GLint framebufferWidth, framebufferHeight;
         glfwGetFramebufferSize(window, &framebufferWidth, &framebufferHeight);
 
-        // update the viewport - tell OpenGL we want to render to the whole window
-        glViewport(0, 0, framebufferWidth, framebufferHeight);
+        mainScreen(framebufferWidth, framebufferHeight);
 
-        glMatrixMode(GL_MODELVIEW);    // make the ModelView matrix current to be modified by any transformations
-        glLoadIdentity();                            // set the matrix to be the identity
-
-        // set up our look at matrix to position our camera
-        glm::mat4 viewMtx = cam->getLookAt();
-        // multiply by the look at matrix - this is the same as our view martix
-        glMultMatrixf(&viewMtx[0][0]);
-        GLfloat lPosition[4] = {0, 100, 0, 1};
-        glLightfv(GL_LIGHT0, GL_POSITION, lPosition);
-
-        renderScene();                    // draw everything to the window
+        miniMap(framebufferWidth, framebufferHeight);
 
         glfwSwapBuffers(window);// flush the OpenGL commands and make sure they get rendered!
         glfwPollEvents();                // check for any events and signal to redraw screen

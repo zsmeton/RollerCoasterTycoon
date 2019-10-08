@@ -9,9 +9,14 @@
 #include <CSCI441/objects.hpp> // for our 3D objects
 #include "HelperFunctions.h"
 #include "GlobalConsts.h"
+#include "FirstPersonCamera.h"
 
 class HeroBase{
 public:
+    HeroBase(){
+        fpv.setMtx(worldMtx);
+    }
+
     virtual void draw()=0;
     virtual void update()=0;
 
@@ -47,8 +52,16 @@ public:
         HeroBase::pos = pos;
     }
 
+    FirstPersonCamera& getFPVCam(){
+        return fpv;
+    }
+
 private:
-    glm::vec3 pos;
+    glm::vec3 pos{};
+    FirstPersonCamera fpv{};
+
+protected:
+    glm::mat4 worldMtx{};
 };
 
 #endif //MP_HEROBASE_H
