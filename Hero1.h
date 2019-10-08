@@ -34,7 +34,7 @@ public:
     constexpr static const float ANGULAR_VEL = FPS_ADJUSTMENT * 0.2f;
     constexpr static const float WHL_VEL = FPS_ADJUSTMENT * 0.5f;
     constexpr static const float WHL_TURN_VEL = WHL_VEL / 2;
-    constexpr static const float LEG_THETA_RATE = FPS_ADJUSTMENT * 0.1;
+    constexpr static const float LEG_THETA_RATE = FPS_ADJUSTMENT * 0.35;
 
     constexpr static const float FAERY_VEL = FPS_ADJUSTMENT * 0.05;
     constexpr static const float F_MAX = std::numeric_limits<float>::max();
@@ -55,7 +55,7 @@ public:
         // Rotate to match the terrain
         vehicleMtx = glm::rotate(vehicleMtx, rad, rotAxis);
         // Translate upwards to keep wheels out of ground
-        vehicleMtx = glm::translate(vehicleMtx, glm::vec3(0.0f,CART_WHEEL_RADIUS, 0.0f));
+        vehicleMtx = glm::translate(vehicleMtx, glm::vec3(0.0f,CART_WHEEL_RADIUS+CART_THICKNESS/10, 0.0f));
         // Orient along direction
         vehicleMtx = glm::rotate(vehicleMtx, theta, glm::vec3(0.0f, 1.0f, 0.0f));
         glMultMatrixf(&vehicleMtx[0][0]);

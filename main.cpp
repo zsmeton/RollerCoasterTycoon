@@ -276,7 +276,6 @@ void updateWandersPos() {
     if(moved){
         cartHero.setPos(characterPos(groundControlPoints, cartHero.getBezierPosition()));
         cartHero.setOrientation(characterNormal(groundControlPoints, cartHero.getBezierPosition()));
-        printf("%f,%f,%f\n", cartHero.getX(), cartHero.getY(), cartHero.getZ());
     }
 }
 
@@ -613,10 +612,7 @@ int main(int argc, char *argv[]) {
         GLfloat lPosition[4] = {0, 100, 0, 1};
         glLightfv(GL_LIGHT0, GL_POSITION, lPosition);
 
-
-
         renderScene();                    // draw everything to the window
-
 
         glfwSwapBuffers(window);// flush the OpenGL commands and make sure they get rendered!
         glfwPollEvents();                // check for any events and signal to redraw screen
