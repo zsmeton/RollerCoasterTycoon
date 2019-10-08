@@ -82,7 +82,7 @@ vector<FaeryHero*> faeryHeros = {&cartHero, &snakeHero};
 int leftMouseButton;                                // status of the mouse button
 glm::vec2 mousePos;                                    // last known X and Y of the mouse
 // Keys movement
-bool keysDown[256] = {0};           // status of our keys
+bool keysDown[349] = {0};           // status of our keys
 bool ctrlKey;                                        // status of the 'Ctrl' Key
 //*************************************************************************************
 //
@@ -226,31 +226,56 @@ static void mouse_button_callback(GLFWwindow *window, int button, int action, in
 //
 // Update Functions - this is where the movement happens
 
-// TODO:
 void updateWandersPos() {
     bool moved = false;
-    if(keysDown[GLFW_KEY_W]) {
-        cartHero.moveForward();
-        moved = true;
-    }
-    if(keysDown[GLFW_KEY_S]){
-        cartHero.moveBackward();
-        moved = true;
-    }
-    if(keysDown[GLFW_KEY_A]){
-        cartHero.turnLeft();
-        moved = true;
-    }
-    if(keysDown[GLFW_KEY_D]){
-        cartHero.turnRight();
-        moved = true;
-    }
-    // Correct the hero's y position
-    if(moved){
-        cartHero.setPos(characterPos(groundControlPoints, cartHero.getBezierPosition()));
-        cartHero.setOrientation(characterNormal(groundControlPoints, cartHero.getBezierPosition()));
+    if((cam.getModel() == Camera::Model::ArcBall || cam.getModel() == Camera::Model::FirstPerson) && cartHero.getPos() == *cam.getTarget()) {
+        if (keysDown[GLFW_KEY_W]) {
+            cartHero.moveForward();
+            moved = true;
+        }
+        if (keysDown[GLFW_KEY_S]) {
+            cartHero.moveBackward();
+            moved = true;
+        }
+        if (keysDown[GLFW_KEY_A]) {
+            cartHero.turnLeft();
+            moved = true;
+        }
+        if (keysDown[GLFW_KEY_D]) {
+            cartHero.turnRight();
+            moved = true;
+        }
+        // Correct the hero's y position
+        if (moved) {
+            cartHero.setPos(characterPos(groundControlPoints, cartHero.getBezierPosition()));
+            cartHero.setOrientation(characterNormal(groundControlPoints, cartHero.getBezierPosition()));
+        }
     }
 }
+
+void updateCamera(){
+    // If key 1,2,3 set the camera target to different heros
+    if(!(keysDown[GLFW_KEY_LEFT_SHIFT]||keysDown[GLFW_KEY_RIGHT_SHIFT])){
+        if(keysDown[GLFW_KEY_1]){
+            cam.setTarget(&(heros.at(0)->getPos()));
+        }else if(keysDown[GLFW_KEY_2]){
+            cam.setTarget(&(heros.at(1)->getPos()));
+        }
+    }else{
+        // change camera model
+        if(keysDown[GLFW_KEY_1]){
+            cam.setModel(Camera::Model::ArcBall);
+        }else if(keysDown[GLFW_KEY_2]){
+            cam.setModel(Camera::Model::FirstPerson);
+        }else if(keysDown[GLFW_KEY_3]){
+            cam.setModel(Camera::Model::FreeCam);
+        }
+    }
+
+    // Handle key presses
+    cam.keyPress(keysDown[GLFW_KEY_W], keysDown[GLFW_KEY_S]);
+}
+
 
 // update() /////////////////////////////////////////////////////
 //
@@ -259,9 +284,11 @@ void updateWandersPos() {
 ////////////////////////////////////////////////////////////////////////////////
 void update() {
     updateWandersPos();
+    updateCamera();
     for(auto hero : heros) {
         hero->update();
     }
+
 }
 
 //*************************************************************************************
@@ -494,18 +521,36 @@ void setupOpenGL() {
 //	initial starting point and generate the display list for our city
 //
 void setupScene() {
-    // give the camera a scenic starting point.
+    // Get world file
+    // Prompt user to enter a file name.  Then read the points from file
+    /*
+    char fileName[100];
+    fprintf(stdout, "Please enter a file name:");
+    gets(fileName);
+    while (!loadControlPoints(fileName)) {
+        fprintf(stdout, "The file %35s is invalid.\n", fileName);
+        fprintf(stdout, "Please enter a file name:");
+        gets(fileName);
+    }
+     */
+    readWorldFile("WorldFiles/WorldFile1.config");
+
+    // Set up the camera
+    cam.setModel(Camera::Model::ArcBall);
     cam.setPos(glm::vec3(60,40,30));
     cam.setPhi(3 * M_PI / 5);
     cam.setTheta(0);
     cam.setDistance(10);
     cam.setTarget(&cartHero.getPos());
     cam.update();
-    srand(time(NULL));    // seed our random number generator
+
+    // Set up the environment
     generateEnvironmentDL();
+
     // Compute the hero's position and orientation
     cartHero.setPos(characterPos(groundControlPoints, cartHero.getBezierPosition()));
     cartHero.setOrientation(characterNormal(groundControlPoints, cartHero.getBezierPosition()));
+
     // TODO: Set snake hero based on location along curve
     snakeHero.setPos(characterPos(groundControlPoints, glm::vec3(0.5f,0.0f,0.5f)));
 }
@@ -532,18 +577,7 @@ int main(int argc, char *argv[]) {
     fprintf(stdout, "[INFO]: |   OpenGL Vendor:   %35s |\n", glGetString(GL_VENDOR));
     fprintf(stdout, "[INFO]: \\--------------------------------------------------------/\n");
 
-    // Prompt user to enter a file name.  Then read the points from file
-    /*
-    char fileName[100];
-    fprintf(stdout, "Please enter a file name:");
-    gets(fileName);
-    while (!loadControlPoints(fileName)) {
-        fprintf(stdout, "The file %35s is invalid.\n", fileName);
-        fprintf(stdout, "Please enter a file name:");
-        gets(fileName);
-    }
-     */
-    readWorldFile("WorldFiles/WorldFile1.config");
+
 
     setupScene();                                            // initialize objects in our scene
 

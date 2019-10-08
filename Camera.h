@@ -27,17 +27,50 @@ public:
     enum Model{FreeCam = 1, ArcBall = 2, FirstPerson = 3};
 
     void update(){
-        camPos = _computePosition();
+        switch(model){
+            case FreeCam:
+                direction.x = sinf(theta) * sinf(phi);
+                direction.z = -cosf(theta) * sinf(phi);
+                direction.y = -cosf(phi);
+                //and normalize this directional vector!
+                direction = glm::normalize(direction );
+                break;
+            case ArcBall:
+                position = _computePosition();
+                break;
+            case FirstPerson:
+                break;
+        }
+
+
+    }
+
+    void keyPress(bool W, bool S){
+        if(model == Model::FreeCam){
+            if(W) {
+                position += 4*CAM_SPEED * direction;
+            }else if(S){
+                position -= 4*CAM_SPEED * direction;
+            }
+        }
     }
 
     void mouseMovement(float xDelta, float yDelta, bool ctrl){
-        if(ctrl) {
-            setDistance(distance + CAM_SPEED * yDelta);
-
+        switch(model){
+            case FreeCam:
+                setTheta(theta + CAM_ANGULAR_VEL * xDelta);
+                setPhi(phi - CAM_ANGULAR_VEL * yDelta);
+                break;
+            case ArcBall:
+                if (ctrl) {
+                    setDistance(distance + CAM_SPEED * yDelta);
+                }
+                setTheta(theta - CAM_ANGULAR_VEL * xDelta);
+                setPhi(phi + CAM_ANGULAR_VEL * yDelta);
+                break;
+            case FirstPerson:
+                break;
         }
-        setTheta(theta - CAM_ANGULAR_VEL * xDelta);
-
-        setPhi(phi + CAM_ANGULAR_VEL * yDelta);
     }
 
     float getTheta() const {
@@ -53,7 +86,17 @@ public:
     }
 
     void setPhi(float phi) {
-        phi = restrictVariable(phi, static_cast<float>(M_PI / 2), static_cast<float>(M_PI));
+        switch(model){
+            case FreeCam:
+                phi = restrictVariable(phi, static_cast<float>(-M_PI+0.001), static_cast<float>(M_PI-0.001));
+                break;
+            case ArcBall:
+                phi = restrictVariable(phi, static_cast<float>(M_PI / 2), static_cast<float>(M_PI-0.001));
+                break;
+            case FirstPerson:
+                break;
+        }
+
         this->phi = phi;
     }
 
@@ -79,21 +122,42 @@ public:
     }
 
     void setModel(Model m){
+        if(model == ArcBall && m == FreeCam){
+            setPhi(phi-M_PI);
+            setTheta(theta-M_PI);
+            position = position + *target;
+        }if(model != ArcBall && m == ArcBall){
+            setPhi(phi+M_PI/4);
+            setTheta(theta+M_PI);
+        }
         model = m;
+        update();
     }
 
     const glm::vec3 &getPos() const {
-        return camPos;
+        return position;
     }
 
     void setPos(const glm::vec3 &camPos) {
-        this->camPos = camPos;
+        this->position = camPos;
     }
 
     glm::mat4 getLookAt() const{
-        return glm::lookAt(camPos + *target,        // camera is located at (10, 10, 10)
-                    *target,        // camera is looking at (0, 0, 0,)
-                    glm::vec3(0, 1, 0));        // up vector is (0, 1, 0) - positive Y
+        switch(model){
+            case FreeCam:
+                return glm::lookAt(position,        // camera is located at (10, 10, 10)
+                                   position+direction,        // camera is looking at (0, 0, 0,)
+                                   glm::vec3(0, 1, 0));        // up vector is (0, 1, 0) - positive Y
+                break;
+            case ArcBall:
+                return glm::lookAt(position + *target,        // camera is located at (10, 10, 10)
+                                   *target,        // camera is looking at (0, 0, 0,)
+                                   glm::vec3(0, 1, 0));        // up vector is (0, 1, 0) - positive Y
+                break;
+            case FirstPerson:
+                break;
+        }
+
     }
 
 private:
@@ -102,8 +166,8 @@ private:
     float distance;
     glm::vec3* target;
     Model model;
-    glm::vec3 camPos;       // camera position in cartesian coordinates
-
+    glm::vec3 position;       // camera position in cartesian coordinates
+    glm::vec3 direction;
     /*!
      * This function updates the camera's direction in cartesian coordinates based
      * on its position in spherical coordinates. Should be called every time
