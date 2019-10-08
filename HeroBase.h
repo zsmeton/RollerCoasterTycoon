@@ -8,7 +8,7 @@
 #include <glm/glm.hpp>
 #include <CSCI441/objects.hpp> // for our 3D objects
 #include "HelperFunctions.h"
-constexpr const float FPS_ADJUSTMENT = 0.1;
+#include "GlobalConsts.h"
 
 class HeroBase{
 public:
@@ -39,7 +39,7 @@ public:
         pos.z = z;
     }
 
-    const glm::vec3 &getPos() const {
+    glm::vec3 &getPos(){
         return pos;
     }
 

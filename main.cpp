@@ -28,14 +28,12 @@
 #include <stdlib.h>            // for exit functionality
 #include <time.h>              // for time() functionality
 #include <vector>               // for vector data structure
-#include <bits/stdc++.h>        // For fmod()
-#include <iostream>
-#include <limits>
 #include "BezierCurve.h"
 #include "BezierPatch.h"
 #include "Hero1.h"
 #include "Hero2.h"
 #include "Hero2.cpp"
+#include "Camera.h"
 using namespace std;
 
 //*************************************************************************************
@@ -52,11 +50,8 @@ using namespace std;
 int windowWidth = 960, windowHeight = 720;
 
 // Camera variables
-float cameraDist = 10;                              // camera's distance from the player
-glm::vec3 camPos;                                    // camera position in cartesian coordinates
-float cameraTheta, cameraPhi;                    // camera DIRECTION in spherical coordinates
-const float CAM_SPEED = FPS_ADJUSTMENT*0.2f;                       // camera's rate of position change
-const float CAM_ANGULAR_VEL = FPS_ADJUSTMENT*0.05f;                // camera's rate of direction change
+Camera cam;
+
 
 // Environment drawing variables
 GLuint environmentDL;                            // display list for the 'city'
@@ -107,18 +102,6 @@ glm::vec3 computePosition(float theta, float phi, float distance) {
     GLfloat y = -distance * cos(phi);
     GLfloat z = -distance * cos(theta) * sin(phi);
     return glm::vec3(x, y, z);
-}
-
-// recomputePosition() //////////////////////////////////////////////////////
-//
-// This function updates the camera's direction in cartesian coordinates based
-//  on its position in spherical coordinates. Should be called every time
-//  cameraTheta or cameraPhi is updated.
-//
-////////////////////////////////////////////////////////////////////////////////
-void recomputePosition() {
-    // Convert spherical coordinates into a cartesian vector
-    camPos = computePosition(cameraTheta, cameraPhi, cameraDist);
 }
 
 /*!
@@ -219,19 +202,9 @@ static void keyboard_callback(GLFWwindow *window, int key, int scancode, int act
 static void cursor_callback(GLFWwindow *window, double x, double y) {
     if (leftMouseButton == GLFW_PRESS) {
         // If shift drag change camera position
-        if (ctrlKey) {
-            cameraDist += CAM_SPEED * (y - mousePos.y);
-            cameraDist = restrictVariable(cameraDist, 2.0f, 15.0f);
-        } else {
-            // Change the yaw based on changes in the X position
-            cameraTheta -= CAM_ANGULAR_VEL * (x - mousePos.x);
-            // Change the pitch based on changes in the X position
-            cameraPhi += CAM_ANGULAR_VEL * (y - mousePos.y);
-            // Make sure pitch is within Pi/2 and Pi
-            cameraPhi = restrictVariable(cameraPhi, static_cast<float>(M_PI / 2), static_cast<float>(M_PI));
-        }
+        cam.mouseMovement(x-mousePos.x, y-mousePos.y, ctrlKey);
     }
-    recomputePosition();           // update camera (x,y,z) based on (theta,phi)
+    cam.update();
     mousePos.x = x;
     mousePos.y = y;
 }
@@ -522,12 +495,12 @@ void setupOpenGL() {
 //
 void setupScene() {
     // give the camera a scenic starting point.
-    camPos.x = 60;
-    camPos.y = 40;
-    camPos.z = 30;
-    cameraPhi = 3 * M_PI / 5;
-    cameraTheta = 0;
-    recomputePosition();
+    cam.setPos(glm::vec3(60,40,30));
+    cam.setPhi(3 * M_PI / 5);
+    cam.setTheta(0);
+    cam.setDistance(10);
+    cam.setTarget(&cartHero.getPos());
+    cam.update();
     srand(time(NULL));    // seed our random number generator
     generateEnvironmentDL();
     // Compute the hero's position and orientation
@@ -604,9 +577,7 @@ int main(int argc, char *argv[]) {
         glLoadIdentity();                            // set the matrix to be the identity
 
         // set up our look at matrix to position our camera
-        glm::mat4 viewMtx = glm::lookAt(camPos + cartHero.getPos(),        // camera is located at (10, 10, 10)
-                                        cartHero.getPos(),        // camera is looking at (0, 0, 0,)
-                                        glm::vec3(0, 1, 0));        // up vector is (0, 1, 0) - positive Y
+        glm::mat4 viewMtx = cam.getLookAt();
         // multiply by the look at matrix - this is the same as our view martix
         glMultMatrixf(&viewMtx[0][0]);
         GLfloat lPosition[4] = {0, 100, 0, 1};
