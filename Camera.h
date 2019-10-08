@@ -58,8 +58,7 @@ public:
     void mouseMovement(float xDelta, float yDelta, bool ctrl){
         switch(model){
             case FreeCam:
-                setTheta(theta + CAM_ANGULAR_VEL * xDelta);
-                setPhi(phi - CAM_ANGULAR_VEL * yDelta);
+
                 break;
             case ArcBall:
 
@@ -84,7 +83,7 @@ public:
     void setPhi(float phi) {
         switch(model){
             case FreeCam:
-                phi = restrictVariable(phi, static_cast<float>(-M_PI+0.001), static_cast<float>(M_PI-0.001));
+
                 break;
             case ArcBall:
 

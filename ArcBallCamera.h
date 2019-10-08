@@ -7,11 +7,12 @@
 
 #include "CameraBase.h"
 
-const float CAM_SPEED = FPS_ADJUSTMENT*0.2f;                       // camera's rate of position change
-const float CAM_ANGULAR_VEL = FPS_ADJUSTMENT*0.05f;                // camera's rate of direction change
 
 class ArcBallCamera : public CameraBase{
 public:
+    const float CAM_SPEED = FPS_ADJUSTMENT*0.2f;                       // camera's rate of position change
+    const float CAM_ANGULAR_VEL = FPS_ADJUSTMENT*0.05f;                // camera's rate of direction change
+
     void update() override {
         position = _computePosition();
     }

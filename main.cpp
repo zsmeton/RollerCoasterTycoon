@@ -35,6 +35,7 @@
 #include "Hero2.cpp"
 #include "CameraBase.h"
 #include "ArcBallCamera.h"
+#include "FreeCamera.h"
 
 using namespace std;
 
@@ -53,6 +54,7 @@ int windowWidth = 960, windowHeight = 720;
 
 // Camera variables
 ArcBallCamera arcBallCamera;
+FreeCamera freeCamera;
 CameraBase* cam = &arcBallCamera;
 
 
@@ -272,7 +274,7 @@ void updateCamera(){
         }else if(keysDown[GLFW_KEY_2]){
             cam = nullptr;
         }else if(keysDown[GLFW_KEY_3]){
-            cam = nullptr;
+            cam = &freeCamera;
         }
     }
     // Handle key presses
@@ -440,6 +442,11 @@ void setupCameras(){
     arcBallCamera.setDistance(10);
     arcBallCamera.setTarget(&cartHero.getPos());
     arcBallCamera.update();
+
+    freeCamera.setTheta( -M_PI / 3.0f);
+    freeCamera.setPhi(M_PI / 2.8f);
+    freeCamera.setPos(glm::vec3(0.0f,20.0f,0.0f));
+    freeCamera.update();
 }
 
 //
