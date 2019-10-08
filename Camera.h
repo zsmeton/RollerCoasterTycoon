@@ -62,11 +62,7 @@ public:
                 setPhi(phi - CAM_ANGULAR_VEL * yDelta);
                 break;
             case ArcBall:
-                if (ctrl) {
-                    setDistance(distance + CAM_SPEED * yDelta);
-                }
-                setTheta(theta - CAM_ANGULAR_VEL * xDelta);
-                setPhi(phi + CAM_ANGULAR_VEL * yDelta);
+
                 break;
             case FirstPerson:
                 break;
@@ -91,7 +87,7 @@ public:
                 phi = restrictVariable(phi, static_cast<float>(-M_PI+0.001), static_cast<float>(M_PI-0.001));
                 break;
             case ArcBall:
-                phi = restrictVariable(phi, static_cast<float>(M_PI / 2), static_cast<float>(M_PI-0.001));
+
                 break;
             case FirstPerson:
                 break;
@@ -100,22 +96,7 @@ public:
         this->phi = phi;
     }
 
-    float getDistance() const {
-        return distance;
-    }
 
-    void setDistance(float distance) {
-        distance = restrictVariable(distance, 2.0f, 15.0f);
-        this->distance = distance;
-    }
-
-    glm::vec3 *getTarget() const {
-        return target;
-    }
-
-    void setTarget(glm::vec3* target){
-        this->target = target;
-    }
 
     Model getModel() const {
         return model;
@@ -168,18 +149,7 @@ private:
     Model model;
     glm::vec3 position;       // camera position in cartesian coordinates
     glm::vec3 direction;
-    /*!
-     * This function updates the camera's direction in cartesian coordinates based
-     * on its position in spherical coordinates. Should be called every time
-     * cameraTheta or cameraPhi is updated.
-     * @return
-     */
-    glm::vec3 _computePosition() {
-        GLfloat x = distance * sin(theta) * sin(phi);
-        GLfloat y = -distance * cos(phi);
-        GLfloat z = -distance * cos(theta) * sin(phi);
-        return glm::vec3(x, y, z);
-    }
+
 };
 
 

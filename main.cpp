@@ -33,7 +33,9 @@
 #include "Hero1.h"
 #include "Hero2.h"
 #include "Hero2.cpp"
-#include "Camera.h"
+#include "CameraBase.h"
+#include "ArcBallCamera.h"
+
 using namespace std;
 
 //*************************************************************************************
@@ -50,7 +52,8 @@ using namespace std;
 int windowWidth = 960, windowHeight = 720;
 
 // Camera variables
-Camera cam;
+ArcBallCamera arcBallCamera;
+CameraBase* cam = &arcBallCamera;
 
 
 // Environment drawing variables
@@ -202,9 +205,9 @@ static void keyboard_callback(GLFWwindow *window, int key, int scancode, int act
 static void cursor_callback(GLFWwindow *window, double x, double y) {
     if (leftMouseButton == GLFW_PRESS) {
         // If shift drag change camera position
-        cam.mouseMovement(x-mousePos.x, y-mousePos.y, ctrlKey);
+        cam->mouseMovement(x-mousePos.x, y-mousePos.y, ctrlKey);
     }
-    cam.update();
+    cam->update();
     mousePos.x = x;
     mousePos.y = y;
 }
@@ -228,7 +231,8 @@ static void mouse_button_callback(GLFWwindow *window, int button, int action, in
 
 void updateWandersPos() {
     bool moved = false;
-    if((cam.getModel() == Camera::Model::ArcBall || cam.getModel() == Camera::Model::FirstPerson) && cartHero.getPos() == *cam.getTarget()) {
+    // Only move the wander if the camera target is the cart hero
+    if(cam == &arcBallCamera && arcBallCamera.getTarget() == &cartHero.getPos()) {
         if (keysDown[GLFW_KEY_W]) {
             cartHero.moveForward();
             moved = true;
@@ -257,23 +261,22 @@ void updateCamera(){
     // If key 1,2,3 set the camera target to different heros
     if(!(keysDown[GLFW_KEY_LEFT_SHIFT]||keysDown[GLFW_KEY_RIGHT_SHIFT])){
         if(keysDown[GLFW_KEY_1]){
-            cam.setTarget(&(heros.at(0)->getPos()));
+            arcBallCamera.setTarget(&(heros.at(0)->getPos()));
         }else if(keysDown[GLFW_KEY_2]){
-            cam.setTarget(&(heros.at(1)->getPos()));
+            arcBallCamera.setTarget(&(heros.at(1)->getPos()));
         }
     }else{
         // change camera model
         if(keysDown[GLFW_KEY_1]){
-            cam.setModel(Camera::Model::ArcBall);
+            cam = &arcBallCamera;
         }else if(keysDown[GLFW_KEY_2]){
-            cam.setModel(Camera::Model::FirstPerson);
+            cam = nullptr;
         }else if(keysDown[GLFW_KEY_3]){
-            cam.setModel(Camera::Model::FreeCam);
+            cam = nullptr;
         }
     }
-
     // Handle key presses
-    cam.keyPress(keysDown[GLFW_KEY_W], keysDown[GLFW_KEY_S]);
+    cam->keyPress(keysDown[GLFW_KEY_W], keysDown[GLFW_KEY_S]);
 }
 
 
@@ -295,93 +298,6 @@ void update() {
 //
 // Rendering / Drawing Functions - this is where the magic happens!
 
-// Draw a "house" a rectangle of random color and height
-// At the x and z location at the map height
-void drawRandomHouse(float x, float z) {
-    // Choose random color
-    glColor3f(getRand(), getRand(), getRand());
-    // Choose random height
-    float buildingHeight = getRand() * BUILDING_HEIGHT + 1;
-    glm::mat4 buildingMtx = glm::translate(glm::mat4(1.0f),
-                                           glm::vec3(x, buildingHeight / 2, z));
-    buildingMtx = glm::scale(buildingMtx, glm::vec3(1.0f, buildingHeight, 1.0f));
-    glMultMatrixf(&buildingMtx[0][0]);
-    {
-        CSCI441::drawSolidCube(1.0f);
-    }
-    glMultMatrixf(&(glm::inverse(buildingMtx))[0][0]);
-}
-
-// Draw a bush of random size and random shade of green
-void drawBush(float x, float z) {
-    // Choose random color
-    for (int i = 0; i < BUSH_ITERATION; i++) {
-        glColor3f(0.0f, getRand() * 255, 0.0f);
-        // Choose random height
-        float bushHeight = getRand() * BUSH_SIZE;
-        glm::mat4 bushMtx = glm::translate(glm::mat4(1.0f),
-                                           glm::vec3(x, bushHeight / 2, z));
-        bushMtx = glm::rotate(bushMtx, float(getRand() * M_PI), glm::vec3(getRand(), getRand(), getRand()));
-        bushMtx = glm::scale(bushMtx, glm::vec3(bushHeight, bushHeight, bushHeight));
-        glMultMatrixf(&bushMtx[0][0]);
-        {
-            CSCI441::drawWireCube(1.0f);
-        }
-        glMultMatrixf(&(glm::inverse(bushMtx))[0][0]);
-    }
-}
-
-// Draws a grey rock at the location
-void drawRock(float x, float z) {
-    // Create the rock by generating rocks of random size
-    // and rotating them to a random angle creating a conglomerate of square
-    float grey = 0.2118;
-    for (int i = 0; i < ROCK_ITERATION; i++) {
-        glColor3f(grey, grey, grey);
-        // Choose random size
-        float rockHeight = getRand() * ROCK_SIZE;
-        glm::mat4 rockMtx = glm::translate(glm::mat4(1.0f),
-                                           glm::vec3(x, rockHeight / 2, z));
-        rockMtx = glm::rotate(rockMtx, float(getRand() * M_PI), glm::vec3(getRand(), getRand(), getRand()));
-        rockMtx = glm::scale(rockMtx, glm::vec3(rockHeight, rockHeight, rockHeight));
-        glMultMatrixf(&rockMtx[0][0]);
-        {
-            CSCI441::drawSolidCube(1.0f);
-        }
-        glMultMatrixf(&(glm::inverse(rockMtx))[0][0]);
-    }
-}
-
-// drawEnvironment() //////////////////////////////////////////////////////////////////
-//
-//  Function to draw a random environment using CSCI441 3D Cubes
-//
-////////////////////////////////////////////////////////////////////////////////
-void drawEnvironment() {
-    // Randomly place random objects
-    for (int i = GRID_START + 1; i < GRID_END + 1; i++) {
-        for (int j = GRID_START + 1; j < GRID_END + 1; j++) {
-            // Draw object if coordinates are even and getRand() is
-            // less than BUILDING_RANDOM_TOLERANCE
-            if (abs(i) % 2 == 0 && abs(j) % 2 == 0 && getRand() < DRAW_RANDOM_TOLERANCE) {
-                // Chose which enivironment objec
-                EnvironmentObject toDraw = static_cast<EnvironmentObject>(rand() % LAST);
-                switch (toDraw) {
-                    case BUILDING:
-                        drawRandomHouse(i, j);
-                        break;
-                    case BUSH:
-                        drawBush(i, j);
-                        break;
-                    case ROCK:
-                        drawRock(i, j);
-                        break;
-
-                }
-            }
-        }
-    }
-}
 
 // generateEnvironmentDL() /////////////////////////////////////////////////////
 //
@@ -514,6 +430,18 @@ void setupOpenGL() {
     glClearColor(0.0f, 0.0f, 0.0f, 1.0f);    // set the clear color to black
 }
 
+
+/*!
+ * Set the initial parameters for the cameras
+ */
+void setupCameras(){
+    arcBallCamera.setPhi(3 * M_PI / 5);
+    arcBallCamera.setTheta(0);
+    arcBallCamera.setDistance(10);
+    arcBallCamera.setTarget(&cartHero.getPos());
+    arcBallCamera.update();
+}
+
 //
 //  void setupScene()
 //
@@ -534,15 +462,6 @@ void setupScene() {
     }
      */
     readWorldFile("WorldFiles/WorldFile1.config");
-
-    // Set up the camera
-    cam.setModel(Camera::Model::ArcBall);
-    cam.setPos(glm::vec3(60,40,30));
-    cam.setPhi(3 * M_PI / 5);
-    cam.setTheta(0);
-    cam.setDistance(10);
-    cam.setTarget(&cartHero.getPos());
-    cam.update();
 
     // Set up the environment
     generateEnvironmentDL();
@@ -580,7 +499,7 @@ int main(int argc, char *argv[]) {
 
 
     setupScene();                                            // initialize objects in our scene
-
+    setupCameras();
     //  This is our draw loop - all rendering is done here.  We use a loop to keep the window open
     //	until the user decides to close the window and quit the program.  Without a loop, the
     //	window will display once and then the program exits.
@@ -611,7 +530,7 @@ int main(int argc, char *argv[]) {
         glLoadIdentity();                            // set the matrix to be the identity
 
         // set up our look at matrix to position our camera
-        glm::mat4 viewMtx = cam.getLookAt();
+        glm::mat4 viewMtx = cam->getLookAt();
         // multiply by the look at matrix - this is the same as our view martix
         glMultMatrixf(&viewMtx[0][0]);
         GLfloat lPosition[4] = {0, 100, 0, 1};

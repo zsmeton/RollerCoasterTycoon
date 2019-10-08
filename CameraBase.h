@@ -5,9 +5,6 @@
 #ifndef MP_CAMERABASE_H
 #define MP_CAMERABASE_H
 
-#ifndef MP_CAMERA_H
-#define MP_CAMERA_H
-
 #ifdef __APPLE__                    // if compiling on Mac OS
 #include <OpenGL/gl.h>
 #else										// if compiling on Linux or Windows OS
@@ -21,9 +18,10 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include "GlobalConsts.h"
+#include "HelperFunctions.h"
 
 class CameraBase {
-
+public:
     virtual void update() = 0;
 
     virtual void keyPress(bool W, bool S) = 0;
@@ -54,7 +52,7 @@ class CameraBase {
 
     virtual glm::mat4 getLookAt() const = 0;
 
-private:
+protected:
     float theta;
     float phi;
     glm::vec3 position;       // camera position in cartesian coordinates
