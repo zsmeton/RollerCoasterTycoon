@@ -37,6 +37,7 @@
 #include "ArcBallCamera.h"
 #include "FreeCamera.h"
 #include "FirstPersonCamera.h"
+#include "Environment.h"
 
 using namespace std;
 
@@ -70,19 +71,7 @@ CameraBase* cam = &arcBallCamera;
 GLuint environmentDL;                            // display list for the 'city'
 
 vector<vector<vector<glm::vec3>>> groundControlPoints;
-const int MAP_SIZE = 100;
-const int GRID_START = -MAP_SIZE;
-const int GRID_END = MAP_SIZE;
-const float DRAW_RANDOM_TOLERANCE = 0.1;                 // The chance an environment object is drawn
-const float BUILDING_HEIGHT = 10;                        // The maximum size of the building
-const float BUSH_SIZE = 1;                               // The maximum size of the bush
-const int BUSH_ITERATION = 7;                           // The number of iterations to draw the bush
-const float ROCK_SIZE = 0.5;                               // The maximum size of the rock
-const int ROCK_ITERATION = 3;                            // The number of iterations to draw the rock
-
-enum EnvironmentObject {
-    BUILDING = 0, BUSH = 1, ROCK = 2, LAST
-}; // enum of all the possible objects to draw
+vector<EnvironmentObject*> objects;
 
 // Characters
 Cart cartHero;
@@ -97,25 +86,7 @@ glm::vec2 mousePos;                                    // last known X and Y of 
 // Keys movement
 bool keysDown[349] = {0};           // status of our keys
 bool ctrlKey;                                        // status of the 'Ctrl' Key
-//*************************************************************************************
-//
-// Helper Functions
-////////////////////////////////////////////////////////////////////////////////
 
-bool loadFaeryPaths(const FILE *file);
-
-// computePosition() //////////////////////////////////////////////////////
-//
-// This function returns the camera's direction in cartesian coordinates based
-//  on the passed in spherical coordinates and the cam distance.
-//
-////////////////////////////////////////////////////////////////////////////////
-glm::vec3 computePosition(float theta, float phi, float distance) {
-    GLfloat x = distance * sin(theta) * sin(phi);
-    GLfloat y = -distance * cos(phi);
-    GLfloat z = -distance * cos(theta) * sin(phi);
-    return glm::vec3(x, y, z);
-}
 
 /*!
  * Reads in the faery paths from the world file
@@ -136,6 +107,36 @@ bool loadFaeryPaths(FILE *file) {
     return true;
 }
 
+/*!
+ * Reads in the environment objects from the world file
+ * @param file an open readable file
+ * @return true if success, false if failure
+ */
+bool readEnvironment(FILE* file){
+    int numObjects;
+    fscanf(file, "%d", &numObjects);
+    // Read in all the points
+    for (int i = 0; i < numObjects; i++) {
+        float x,z;
+        char type [4];
+        fscanf(file, "%s %f %f", &type[0], &x, &z);
+        glm::vec3 pos = computePositionBezierPatch(groundControlPoints, x,z);
+        if(strcmp(type,"Ball") == 0){
+            Ball* ball = new Ball(pos.x, pos.y, pos.z);
+            objects.emplace_back(ball);
+        }else if (strcmp(type,"Rock") == 0){
+            Rock* rock = new Rock(pos.x, pos.y, pos.z);
+            objects.emplace_back(rock);
+        }else if (strcmp(type,"Bush") == 0){
+            Bush* bush = new Bush(pos.x, pos.y, pos.z);
+            objects.emplace_back(bush);
+        }
+    }
+    return true;
+
+}
+
+
 bool readWorldFile(char* filename){
     // Read in control points from file.  Make sure the file can be
     // opened and handle it appropriately.  return false if there is an error
@@ -150,7 +151,9 @@ bool readWorldFile(char* filename){
         groundControlPoints = loadControlPointsBezierPatch(file);
         cartHero.setMaxZ(groundControlPoints.at(0).size()-0.00001f);
         cartHero.setMaxX(groundControlPoints.size() - 0.00001f);
-
+        // Read in bezier curve
+        // Loading in environment objects
+        readEnvironment(file);
         return true;
     }
     return false;
@@ -334,7 +337,9 @@ void generateEnvironmentDL() {
     glNewList(environmentDL, GL_COMPILE);
     {
         drawBezierPatch(groundControlPoints);
-        //drawEnvironment();
+        for(auto obj : objects){
+            obj->render();
+        }
     }
     glEndList();
 
@@ -418,7 +423,7 @@ void setupOpenGL() {
     //		surface removal.  We will discuss this more very soon.
     glEnable(GL_DEPTH_TEST);
 
-    //glEnable( GL_CULL_FACE );           // enable back face culling to speed render times
+    glEnable( GL_CULL_FACE );           // enable back face culling to speed render times
     glFrontFace( GL_CCW );              // denote front faces specified by counter-clockwise winding order
     glCullFace( GL_BACK );              // cull our back faces
     //******************************************************************
@@ -489,7 +494,7 @@ void setupScene() {
         gets(fileName);
     }
      */
-    readWorldFile("WorldFiles/WorldFile1.config");
+    readWorldFile("WorldFiles/WorldFile2.config");
 
     // Set up the environment
     generateEnvironmentDL();
