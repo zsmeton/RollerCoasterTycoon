@@ -484,8 +484,8 @@ void setupCameras(){
     freeCamera.setPos(glm::vec3(0.0f,20.0f,0.0f));
     freeCamera.update();
 
-    FPVCam = &heros.at(0)->getFPVCam();
-    FPVCharacter = 0;
+    FPVCam = &heros.at(1)->getFPVCam();
+    FPVCharacter = 1;
 }
 
 //

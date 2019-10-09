@@ -250,25 +250,20 @@ void Snake::drawFaery() {
 }
 
 void Snake::draw() {
-    glm::mat4 scaleMtx = glm::scale(glm::mat4(1.0f), glm::vec3(0.2f,0.2f,0.2f));
-    glm::mat4 transSnake = glm::translate(glm::mat4(1.0f), getPos());
-    glMultMatrixf(&transSnake[0][0]);{
-        glm::mat4 rotateSnakechange = glm::rotate(glm::mat4(1.0f), -snakeTheta, glm::vec3(0.0f, 1.0, 0.0f));
-        glMultMatrixf(&rotateSnakechange[0][0]);{
-            if(faeryMovement.size() != 0) {
-                drawFaery();
-            }
-            glm::mat4 rotateSnake = glm::rotate(glm::mat4(1.0f), PI / 2, glm::vec3(0.0f, 0.0, 1.0f));
-            rotateSnake = glm::rotate(rotateSnake, PI/2, glm::vec3(0.0f,1.0f,0.0f));
-            glMultMatrixf(&rotateSnake[0][0]);{
-                glm::mat4 scaleSnake = glm::scale(glm::mat4(1.0f), glm::vec3(0.15f, 0.15f, 0.15f));
-                glMultMatrixf(&scaleSnake[0][0]);{
-                    drawSnakeTongue();
-                    drawSnake();
-                }glMultMatrixf(&(glm::inverse(scaleSnake))[0][0]);
-            }glMultMatrixf(&(glm::inverse(rotateSnake))[0][0]);
-        }glMultMatrixf(&(glm::inverse(rotateSnakechange))[0][0]);
-    }glMultMatrixf(&(glm::inverse(transSnake))[0][0]);
+    worldMtx = glm::translate(glm::mat4(1.0f), getPos()+glm::vec3(0.0f,1.0f,0.0f));
+    worldMtx = glm::rotate(worldMtx, -snakeTheta, glm::vec3(0.0f, 1.0, 0.0f));
+    glMultMatrixf(&worldMtx[0][0]);{
+        if (faeryMovement.size() != 0) {
+            drawFaery();
+        }
+    }glMultMatrixf(&(glm::inverse(worldMtx))[0][0]);
+    worldMtx = glm::rotate(worldMtx, PI / 2, glm::vec3(0.0f, 0.0, 1.0f));
+   // worldMtx = glm::rotate(worldMtx, PI/2, glm::vec3(0.0f,1.0f,0.0f));
+    worldMtx = glm::scale(worldMtx, glm::vec3(0.15f, 0.15f, 0.15f));
+    glMultMatrixf(&worldMtx[0][0]);{
+                drawSnakeTongue();
+                drawSnake();
+    }glMultMatrixf(&(glm::inverse(worldMtx))[0][0]);
 }
 
 void Snake::update() {

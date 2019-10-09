@@ -15,7 +15,7 @@ using namespace std;
 
 // CHANGING THESE VARIABLES WILL BREAK A LOT OF THINGS SO PLEASE DON'T
 const int GROUP_SIZE = 4;
-const int RESOLUTION = 20;
+const int RESOLUTION = 100;
 
 
 /*!
@@ -101,7 +101,7 @@ void renderBezierCurve( glm::vec3 p0, glm::vec3 p1, glm::vec3 p2, glm::vec3 p3, 
         float angle = glm::atan(coasterHeading.z, coasterHeading.x);
         glm::vec3 point = evaluateBezierCurve(p0, p1, p2, p3, float(i)/ static_cast<float>(resolution));
         glm::mat4 coasterCubeMtx = glm::translate(glm::mat4(1.0f), point);
-        coasterCubeMtx = glm::rotate(coasterCubeMtx, angle, glm::vec3(0.0f,1.0f,0.0f));
+        //coasterCubeMtx = glm::rotate(coasterCubeMtx, angle, glm::vec3(0.0f,1.0f,0.0f));
         coasterCubeMtx = glm::scale(coasterCubeMtx, glm::vec3(4.0, 0.25, 0.25));
         glMultMatrixf(&coasterCubeMtx[0][0]);
         CSCI441::drawSolidCube(2);
