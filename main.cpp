@@ -71,6 +71,7 @@ CameraBase* cam = &arcBallCamera;
 GLuint environmentDL;                            // display list for the 'city'
 
 vector<vector<vector<glm::vec3>>> groundControlPoints;
+vector<glm::vec3> coasterControlPoints;
 vector<EnvironmentObject*> objects;
 
 // Characters
@@ -152,6 +153,7 @@ bool readWorldFile(char* filename){
         cartHero.setMaxZ(groundControlPoints.at(0).size()-0.00001f);
         cartHero.setMaxX(groundControlPoints.size() - 0.00001f);
         // Read in bezier curve
+        coasterControlPoints = loadControlPoints(file);
         // Loading in environment objects
         readEnvironment(file);
         return true;
@@ -340,6 +342,12 @@ void generateEnvironmentDL() {
         for(auto obj : objects){
             obj->render();
         }
+        glm::mat4 coasterTranform = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, -20.0f, 0.0f));
+        glMultMatrixf(&coasterTranform[0][0]);
+        {
+            drawBezierCurve(coasterControlPoints);
+        }
+        glMultMatrixf(&(glm::inverse(coasterTranform))[0][0]);
     }
     glEndList();
 
@@ -359,7 +367,6 @@ void renderScene(void) {
     for(auto hero : heros) {
         hero->draw();
     }
-    //firstPersonCamera.draw();
 }
 
 //*************************************************************************************
@@ -435,8 +442,14 @@ void setupOpenGL() {
 
     glLightfv(GL_LIGHT0, GL_DIFFUSE, lightCol);
     glLightfv(GL_LIGHT0, GL_AMBIENT, ambientCol);
+    glLightfv(GL_LIGHT1, GL_DIFFUSE, lightCol);
+    glLightfv(GL_LIGHT1, GL_AMBIENT, ambientCol);
+    glLightfv(GL_LIGHT2, GL_DIFFUSE, lightCol);
+    glLightfv(GL_LIGHT2, GL_AMBIENT, ambientCol);
     glEnable(GL_LIGHTING);
     glEnable(GL_LIGHT0);
+    glEnable(GL_LIGHT1);
+    glEnable(GL_LIGHT2);
 
     // tell OpenGL not to use the material system; just use whatever we
     // pass with glColor*()
@@ -494,7 +507,7 @@ void setupScene() {
         gets(fileName);
     }
      */
-    readWorldFile("WorldFiles/WorldFile2.config");
+    readWorldFile("WorldFiles/WorldFile1.config");
 
     // Set up the environment
     generateEnvironmentDL();
@@ -512,6 +525,15 @@ void setupScene() {
 //
 // Our main function
 
+void placeLighting(){
+    GLfloat lPosition[4] = {0, 100, 0, 1};
+    glLightfv(GL_LIGHT0, GL_POSITION, lPosition);
+    GLfloat lPosition1[4] = {-100, 200, -100, 1};
+    glLightfv(GL_LIGHT1, GL_POSITION, lPosition1);
+    GLfloat lPosition2[4] = {100, 200, 100, 1};
+    glLightfv(GL_LIGHT2, GL_POSITION, lPosition2);
+}
+
 void mainScreen(GLint framebufferWidth, GLint framebufferHeight){
     // update the viewport - tell OpenGL we want to render to the whole window
     glViewport(0, 0, framebufferWidth, framebufferHeight);
@@ -523,8 +545,7 @@ void mainScreen(GLint framebufferWidth, GLint framebufferHeight){
     glm::mat4 viewMtx = cam->getLookAt();
     // multiply by the look at matrix - this is the same as our view martix
     glMultMatrixf(&viewMtx[0][0]);
-    GLfloat lPosition[4] = {0, 100, 0, 1};
-    glLightfv(GL_LIGHT0, GL_POSITION, lPosition);
+    placeLighting();
 
     renderScene();                    // draw everything to the window
 }
@@ -547,8 +568,7 @@ void miniMap(GLint framebufferWidth, GLint framebufferHeight){
     glm::mat4 miniViewMtx = FPVCam->getLookAt();
     // multiply by the look at matrix - this is the same as our view martix
     glMultMatrixf(&miniViewMtx[0][0]);
-    GLfloat lPosition[4] = {0, 100, 0, 1};
-    glLightfv(GL_LIGHT0, GL_POSITION, lPosition);
+    placeLighting();
 
     renderScene();                    // draw everything to the window
 }
