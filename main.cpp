@@ -64,6 +64,8 @@ ArcBallCamera arcBallCamera;
 FreeCamera freeCamera;
 FirstPersonCamera* FPVCam;
 int FPVCharacter = 0;
+time_t FPVToggleTimer = 0;
+time_t FPV_TOGGLE_DURATION = 1; // wait x amount of time before switching fpv camera
 CameraBase* cam = &arcBallCamera;
 
 
@@ -291,9 +293,12 @@ void updateCamera(){
         if(keysDown[GLFW_KEY_1]){
             cam = &arcBallCamera;
         }else if(keysDown[GLFW_KEY_2]){
-            FPVCharacter += 1;
-            FPVCharacter %= heros.size();
-            FPVCam = &(heros.at(FPVCharacter)->getFPVCam());
+            if((time(NULL)-FPVToggleTimer) > FPV_TOGGLE_DURATION) {
+                FPVToggleTimer = time(NULL);
+                FPVCharacter += 1;
+                FPVCharacter %= heros.size();
+                FPVCam = &(heros.at(FPVCharacter)->getFPVCam());
+            }
         }else if(keysDown[GLFW_KEY_3]){
             cam = &freeCamera;
         }

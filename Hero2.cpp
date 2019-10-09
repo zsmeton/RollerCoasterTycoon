@@ -250,7 +250,7 @@ void Snake::drawFaery() {
 }
 
 void Snake::draw() {
-    worldMtx = glm::translate(glm::mat4(1.0f), getPos()+glm::vec3(0.0f,1.0f,0.0f));
+    worldMtx = glm::translate(glm::mat4(1.0f), getPos());
     worldMtx = glm::rotate(worldMtx, -snakeTheta, glm::vec3(0.0f, 1.0, 0.0f));
     glMultMatrixf(&worldMtx[0][0]);{
         if (faeryMovement.size() != 0) {
@@ -258,12 +258,18 @@ void Snake::draw() {
         }
     }glMultMatrixf(&(glm::inverse(worldMtx))[0][0]);
     worldMtx = glm::rotate(worldMtx, PI / 2, glm::vec3(0.0f, 0.0, 1.0f));
-   // worldMtx = glm::rotate(worldMtx, PI/2, glm::vec3(0.0f,1.0f,0.0f));
+    worldMtx = glm::rotate(worldMtx, PI/2, glm::vec3(0.0f,1.0f,0.0f));
     worldMtx = glm::scale(worldMtx, glm::vec3(0.15f, 0.15f, 0.15f));
     glMultMatrixf(&worldMtx[0][0]);{
                 drawSnakeTongue();
                 drawSnake();
     }glMultMatrixf(&(glm::inverse(worldMtx))[0][0]);
+    // Position the camera correctly
+    worldMtx = glm::scale(worldMtx, glm::vec3(6.67f, 6.67f, 6.67f));
+    worldMtx = glm::rotate(worldMtx, PI/2, glm::vec3(0.0f,1.0f,0.0f));
+    worldMtx = glm::translate(worldMtx, glm::vec3(0.0f, -6.67f, 0.0f));
+    worldMtx = glm::rotate(worldMtx, -PI/2, glm::vec3(1.0f,0.0f,0.0f));
+    worldMtx = glm::translate(worldMtx, glm::vec3(-1.0f, -1.0, 10.0f));
 }
 
 void Snake::update() {
