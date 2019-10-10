@@ -172,13 +172,13 @@ bool readWorldFile(char* filename){
     // Check if the file can be opened
     if ((file = fopen(filename, "r"))) {
         if(!loadFaeryPaths(file)){
-            fprintf(stderr, "Invalid paths for faery's");
+            fprintf(stderr, "Invalid paths for faery's\n");
             return false;
         }
         // Read in bezier surface control points
         groundControlPoints = loadControlPointsBezierPatch(file);
         if(groundControlPoints.size() == 0){
-            fprintf(stderr, "Invalid control points for ground surface");
+            fprintf(stderr, "Invalid control points for ground surface\n");
             return false;
         }
         cartHero.setMaxZ(groundControlPoints.at(0).size()-0.00001f);
@@ -186,14 +186,14 @@ bool readWorldFile(char* filename){
         // Read in bezier curve
         coasterControlPoints = loadControlPoints(file);
         if(coasterControlPoints.size() == 0){
-            fprintf(stderr, "Invalid control points for roller coaster");
+            fprintf(stderr, "Invalid control points for roller coaster\n");
             return false;
         }
         coasterHero.setControlPoints(coasterControlPoints);
 
         // Loading in environment objects
         if(!readEnvironment(file)){
-            fprintf(stderr, "Invalid environment objects");
+            fprintf(stderr, "Invalid environment objects\n");
             return false;
         }
         return true;
@@ -360,7 +360,6 @@ void cameraChange(CameraBase*& cam, ArcBallCamera& arc, FreeCamera& free, FirstP
 
 void updateCamera(){
     if(split){
-        double xpos, ypos;
         if(splitL.inWindow(mousePos.x, mousePos.y)){
             cameraChange(camL, arcBallCameraL, freeCameraL, FPVCamL, FPVCharacterL);
         }else{
