@@ -52,7 +52,7 @@ glm::vec3 evaluateBezierCurveDerivative(glm::vec3 p0, glm::vec3 p1, glm::vec3 p2
     glm::vec3 c = -3.0f * p0 + 3.0f * p1;
     glm::vec3 d = p0;
     glm::vec3 point = 3.0f*static_cast<float>(pow(t, 2)) * a + 2*static_cast<float>(pow(t, 1)) * b + c;
-    return point;
+    return normalize(point);
 }
 
 
@@ -62,7 +62,7 @@ glm::vec3 evaluateBezierCurveDerivative(glm::vec3 p0, glm::vec3 p1, glm::vec3 p2
  * @param t the time step along the curve
  * @return [dx,dy,z]
  */
-glm::vec3 computeRotationBezierCurve(const vector<glm::vec3>& controlPoints, const float dt) {
+glm::vec3 computeRotationBezierCurve(const vector<glm::vec3>& controlPoints, const float t) {
     // The bezier curve is grouped into fours
     // i.e. p1,p2,p3,p4,p5,p6,p7 -> (p1,p2,p3,p4),(p4,p5,p6,p7)
     //      p1,p2,p3,p4,p5,p6,p7,p8 -> (p1,p2,p3,p4),(p4,p5,p6,p7)
@@ -70,16 +70,14 @@ glm::vec3 computeRotationBezierCurve(const vector<glm::vec3>& controlPoints, con
     // calculate which group defines the bezier curve we must the object is on
 
     // calculate which bezier curve the object is in based on dt
-    int group = int(dt) % int(controlPoints.size()/3);
-    int groupStartIndex = 4*group;
-    if(groupStartIndex != 0){
-        groupStartIndex -=1;
-    }
+    int group = int(t) % int(floor(controlPoints.size()/3));
+    int groupStartIndex = 3*group;
+
     glm::vec3 a = controlPoints.at(groupStartIndex);
     glm::vec3 b = controlPoints.at(groupStartIndex+1);
     glm::vec3 c = controlPoints.at(groupStartIndex+2);
     glm::vec3 d = controlPoints.at(groupStartIndex+3);
-    float groupT = fmod(dt,1.0f) ;
+    float groupT = fmod(t,1.0f) ;
     return evaluateBezierCurveDerivative(a,b,c,d,groupT);
 }
 
@@ -93,21 +91,30 @@ glm::vec3 computeRotationBezierCurve(const vector<glm::vec3>& controlPoints, con
  * @param resolution
  */
 void renderBezierCurve( glm::vec3 p0, glm::vec3 p1, glm::vec3 p2, glm::vec3 p3, int resolution ) {
+
+    glDisable(GL_COLOR_MATERIAL);
+    glm::vec3 UP = glm::vec3(0.0f,0.0f,1.0f);
     glLineWidth(3.0f);
     for(int i = 0; i < resolution; i++){
         glColor3f((i/0.25)/255.0f, i/255.0f,(1*4)/255.0f);
+        glm::vec3 coasterHeading = computeRotationBezierCurve(vector<glm::vec3>({p0,p1,p2,p3}), float(i)/ static_cast<float>(resolution));
+        glm::vec3 rotAxis =glm::cross(UP, coasterHeading);
+        float rad = acos(glm::dot( glm::normalize(coasterHeading), glm::normalize(UP)));
+
+
+        GLfloat color[4] = {static_cast<GLfloat>((i/0.25)/255.0f), i/255.0f,(1*4)/255.0f, 1};
+        glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE, color);
         // Find the rotation of the coaster cube
-        glm::vec3 coasterHeading = computeRotationBezierCurve(vector<glm::vec3>({p0,p1,p2,p3}), float(i)/float(resolution));
-        float angle = glm::atan(coasterHeading.z, coasterHeading.x);
         glm::vec3 point = evaluateBezierCurve(p0, p1, p2, p3, float(i)/ static_cast<float>(resolution));
         glm::mat4 coasterCubeMtx = glm::translate(glm::mat4(1.0f), point);
-        //coasterCubeMtx = glm::rotate(coasterCubeMtx, angle, glm::vec3(0.0f,1.0f,0.0f));
+        coasterCubeMtx = glm::rotate(coasterCubeMtx, rad, rotAxis);
         coasterCubeMtx = glm::scale(coasterCubeMtx, glm::vec3(4.0, 0.25, 0.25));
         glMultMatrixf(&coasterCubeMtx[0][0]);
         CSCI441::drawSolidCube(2);
         glMultMatrixf(&(glm::inverse(coasterCubeMtx))[0][0]);
         glColor3f(0.7,0.7, 0.7);
-        if(i%9==0) {
+
+        if(i%9==1) {
             if(point[1] > 0.0f) {
                 glm::mat4 CoasterPolesTrans = glm::translate(glm::mat4(1.0f), glm::vec3(point[0], 0, point[2]));
                 glMultMatrixf(&CoasterPolesTrans[0][0]);
@@ -124,6 +131,7 @@ void renderBezierCurve( glm::vec3 p0, glm::vec3 p1, glm::vec3 p2, glm::vec3 p3, 
             glMultMatrixf(&(glm::inverse(CoasterPolesTrans))[0][0]);
         }
     }
+    glEnable(GL_COLOR_MATERIAL);
 
 }
 
@@ -205,11 +213,9 @@ glm::vec3 computePositionBezierCurve(const vector<glm::vec3>& controlPoints, con
     // calculate which group defines the bezier curve we must the object is on
 
     // calculate which bezier curve the object is in based on dt
-    int group = int(t) % int(controlPoints.size()/3);
-    int groupStartIndex = 4*group;
-    if(groupStartIndex != 0){
-        groupStartIndex -=1;
-    }
+    int group = int(t) % int(floor(controlPoints.size()/3));
+    int groupStartIndex = 3*group;
+
     glm::vec3 p0 = controlPoints.at(groupStartIndex);
     glm::vec3 p1 = controlPoints.at(groupStartIndex+1);
     glm::vec3 p2 = controlPoints.at(groupStartIndex+2);

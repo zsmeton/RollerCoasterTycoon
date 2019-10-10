@@ -72,7 +72,7 @@ class Bush : public EnvironmentObject{
             bushMtx = glm::scale(bushMtx, glm::vec3(bushHeight, bushHeight, bushHeight));
             glMultMatrixf(&bushMtx[0][0]);
             {
-                CSCI441::drawWireCube(1.0f);
+                CSCI441::drawSolidCube(1.0f);
             }
             glMultMatrixf(&(glm::inverse(bushMtx))[0][0]);
         }

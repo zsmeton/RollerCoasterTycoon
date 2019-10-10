@@ -38,6 +38,7 @@
 #include "FreeCamera.h"
 #include "FirstPersonCamera.h"
 #include "Environment.h"
+#include "Hero3.h"
 
 using namespace std;
 
@@ -79,7 +80,8 @@ vector<EnvironmentObject*> objects;
 // Characters
 Cart cartHero;
 Snake snakeHero;
-vector<HeroBase*> heros = {&cartHero, &snakeHero};
+Coaster coasterHero;
+vector<HeroBase*> heros = {&cartHero, &snakeHero, &coasterHero};
 vector<FaeryHero*> faeryHeros = {&cartHero, &snakeHero};
 
 // Interaction variables
@@ -100,6 +102,7 @@ bool loadFaeryPaths(FILE *file) {
     // Read in faery flight paths:
     int numFaerys;
     fscanf(file, "%d", &numFaerys);
+    if(numFaerys == 0) return false;
     if(numFaerys > faeryHeros.size()){
         return false;
     }
@@ -118,6 +121,7 @@ bool loadFaeryPaths(FILE *file) {
 bool readEnvironment(FILE* file){
     int numObjects;
     fscanf(file, "%d", &numObjects);
+    if(numObjects == 0) return false;
     // Read in all the points
     for (int i = 0; i < numObjects; i++) {
         float x,z;
@@ -147,17 +151,30 @@ bool readWorldFile(char* filename){
     // Check if the file can be opened
     if ((file = fopen(filename, "r"))) {
         if(!loadFaeryPaths(file)){
-            fprintf(stderr, "More faery paths than faery's");
-            exit(-28);
+            fprintf(stderr, "Invalid paths for faery's");
+            return false;
         }
         // Read in bezier surface control points
         groundControlPoints = loadControlPointsBezierPatch(file);
+        if(groundControlPoints.size() == 0){
+            fprintf(stderr, "Invalid control points for ground surface");
+            return false;
+        }
         cartHero.setMaxZ(groundControlPoints.at(0).size()-0.00001f);
         cartHero.setMaxX(groundControlPoints.size() - 0.00001f);
         // Read in bezier curve
         coasterControlPoints = loadControlPoints(file);
+        if(coasterControlPoints.size() == 0){
+            fprintf(stderr, "Invalid control points for roller coaster");
+            return false;
+        }
+        coasterHero.setControlPoints(coasterControlPoints);
+
         // Loading in environment objects
-        readEnvironment(file);
+        if(!readEnvironment(file)){
+            fprintf(stderr, "Invalid environment objects");
+            return false;
+        }
         return true;
     }
     return false;
@@ -347,12 +364,8 @@ void generateEnvironmentDL() {
         for(auto obj : objects){
             obj->render();
         }
-        glm::mat4 coasterTranform = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, -20.0f, 0.0f));
-        glMultMatrixf(&coasterTranform[0][0]);
-        {
-            drawBezierCurve(coasterControlPoints);
-        }
-        glMultMatrixf(&(glm::inverse(coasterTranform))[0][0]);
+
+        drawBezierCurve(coasterControlPoints);
     }
     glEndList();
 
@@ -452,9 +465,9 @@ void setupOpenGL() {
     glLightfv(GL_LIGHT2, GL_DIFFUSE, lightCol);
     glLightfv(GL_LIGHT2, GL_AMBIENT, ambientCol);
     glEnable(GL_LIGHTING);
-    glEnable(GL_LIGHT0);
+    //glEnable(GL_LIGHT0);
     glEnable(GL_LIGHT1);
-    glEnable(GL_LIGHT2);
+    //glEnable(GL_LIGHT2);
 
     // tell OpenGL not to use the material system; just use whatever we
     // pass with glColor*()
@@ -548,7 +561,7 @@ void mainScreen(GLint framebufferWidth, GLint framebufferHeight){
 
     // set up our look at matrix to position our camera
     glm::mat4 viewMtx = cam->getLookAt();
-    // multiply by the look at matrix - this is the same as our view martix
+    // multiply by the look at matrix - this is the same as our view matrix
     glMultMatrixf(&viewMtx[0][0]);
     placeLighting();
 
