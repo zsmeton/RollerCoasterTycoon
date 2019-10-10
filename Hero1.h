@@ -229,6 +229,7 @@ private:
     }
 
     void drawFaery() const {
+        glDisable(GL_CULL_FACE);
         drawFaeryBody();
         glm::mat4 lWingMtx = glm::translate(glm::mat4(1.0f), glm::vec3(0.1f, 0.025f, -0.01f));
         lWingMtx = glm::rotate(lWingMtx, faeryTheta, glm::vec3(0.0f, 1.0f, 0.0f));
@@ -244,6 +245,7 @@ private:
             drawFaeryWing();
         }
         glMultMatrixf(&(glm::inverse(rWingMtx))[0][0]);
+        glEnable(GL_CULL_FACE);
     }
 
     void drawHorseBody() const {

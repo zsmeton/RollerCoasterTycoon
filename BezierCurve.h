@@ -116,19 +116,15 @@ void renderBezierCurve( glm::vec3 p0, glm::vec3 p1, glm::vec3 p2, glm::vec3 p3, 
 
         if(i%9==1) {
             if(point[1] > 0.0f) {
-                glm::mat4 CoasterPolesTrans = glm::translate(glm::mat4(1.0f), glm::vec3(point[0], 0, point[2]));
+                glm::mat4 CoasterPolesTrans = glm::translate(glm::mat4(1.0f), glm::vec3(point[0], -point[1], point[2]));
                 glMultMatrixf(&CoasterPolesTrans[0][0]);
-                CSCI441::drawSolidCylinder(0.7, 0.25, point[1], 25, 25);
+                CSCI441::drawSolidCylinder(.7, 0.25, point[1]*2, 25, 25);
                 glMultMatrixf(&(glm::inverse(CoasterPolesTrans))[0][0]);
             }
         }
 
         if(i < 100 && i > 70){
             glColor3f(i/255.0f,(1*4)/255.0f, (i/0.25)/255.0f);
-            glm::mat4 CoasterPolesTrans = glm::translate(glm::mat4(1.0f), glm::vec3(point[0], point[1], point[2]));
-            glMultMatrixf(&CoasterPolesTrans[0][0]);
-            CSCI441::drawSolidPartialDisk(3.0,5.0,25,25,0,3.14);
-            glMultMatrixf(&(glm::inverse(CoasterPolesTrans))[0][0]);
         }
     }
     glEnable(GL_COLOR_MATERIAL);

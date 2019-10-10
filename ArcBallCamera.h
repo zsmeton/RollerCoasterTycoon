@@ -24,9 +24,10 @@ public:
     void mouseMovement(float xDelta, float yDelta, bool ctrl) override {
         if (ctrl) {
             setDistance(distance + CAM_SPEED * yDelta);
+        }else {
+            setTheta(theta - CAM_ANGULAR_VEL * xDelta);
+            setPhi(phi + CAM_ANGULAR_VEL * yDelta);
         }
-        setTheta(theta - CAM_ANGULAR_VEL * xDelta);
-        setPhi(phi + CAM_ANGULAR_VEL * yDelta);
     }
 
     void setPhi(float phi) override {

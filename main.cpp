@@ -53,21 +53,29 @@ using namespace std;
 // global variables to keep track of window width and height.
 // set to initial values for convenience, but we need variables
 // for later on in case the window gets resized.
-int windowWidth = 960, windowHeight = 720;
+int windowWidth = 1920, windowHeight = 1080;
 
 // Minimap window settings
 const GLint MINI_MAP_SIZE = 200;
-GLint miniWindowStartX = windowWidth - MINI_MAP_SIZE;
-GLint miniWindowStartY = windowHeight - MINI_MAP_SIZE;
+GLint miniWindowStartLX = windowWidth - MINI_MAP_SIZE;
+GLint miniWindowStartLY = windowHeight - MINI_MAP_SIZE;
+
+
 
 // Camera variables
-ArcBallCamera arcBallCamera;
-FreeCamera freeCamera;
-FirstPersonCamera* FPVCam;
-int FPVCharacter = 0;
+ArcBallCamera arcBallCameraL;
+FreeCamera freeCameraL;
+FirstPersonCamera* FPVCamL;
+int FPVCharacterL = 0;
 time_t FPVToggleTimer = 0;
 time_t FPV_TOGGLE_DURATION = 1; // wait x amount of time before switching fpv camera
-CameraBase* cam = &arcBallCamera;
+CameraBase* camL = &arcBallCameraL;
+
+ArcBallCamera arcBallCameraR;
+FreeCamera freeCameraR;
+FirstPersonCamera* FPVCamR;
+int FPVCharacterR = 0;
+CameraBase* camR = &arcBallCameraR;
 
 
 // Environment drawing variables
@@ -91,6 +99,7 @@ glm::vec2 mousePos;                                    // last known X and Y of 
 // Keys movement
 bool keysDown[349] = {0};           // status of our keys
 bool ctrlKey;                                        // status of the 'Ctrl' Key
+
 
 
 /*!
@@ -239,9 +248,9 @@ static void keyboard_callback(GLFWwindow *window, int key, int scancode, int act
 static void cursor_callback(GLFWwindow *window, double x, double y) {
     if (leftMouseButton == GLFW_PRESS) {
         // If shift drag change camera position
-        cam->mouseMovement(x-mousePos.x, y-mousePos.y, ctrlKey);
+        camL->mouseMovement(x - mousePos.x, y - mousePos.y, ctrlKey);
     }
-    cam->update();
+    camL->update();
     mousePos.x = x;
     mousePos.y = y;
 }
@@ -266,7 +275,7 @@ static void mouse_button_callback(GLFWwindow *window, int button, int action, in
 void updateWandersPos() {
     bool moved = false;
     // Only move the wander if the camera target is the cart hero
-    if((cam == &arcBallCamera && arcBallCamera.getTarget() == &cartHero.getPos())) {
+    if((camL == &arcBallCameraL && arcBallCameraL.getTarget() == &cartHero.getPos())||(camR == &arcBallCameraR && arcBallCameraR.getTarget() == &cartHero.getPos())) {
         if (keysDown[GLFW_KEY_W]) {
             cartHero.moveForward();
             moved = true;
@@ -300,28 +309,28 @@ void updateCamera(){
         }else if(keysDown[GLFW_KEY_2]){
             targetIndex = 1;
         }else if(keysDown[GLFW_KEY_3]){
-            //targetIndex = 2;
+            targetIndex = 2;
         }
         if(targetIndex != -1) {
-            arcBallCamera.setTarget(&(heros.at(targetIndex)->getPos()));
+            arcBallCameraL.setTarget(&(heros.at(targetIndex)->getPos()));
         }
     }else{
         // change camera model
         if(keysDown[GLFW_KEY_1]){
-            cam = &arcBallCamera;
+            camL = &arcBallCameraL;
         }else if(keysDown[GLFW_KEY_2]){
             if((time(NULL)-FPVToggleTimer) > FPV_TOGGLE_DURATION) {
                 FPVToggleTimer = time(NULL);
-                FPVCharacter += 1;
-                FPVCharacter %= heros.size();
-                FPVCam = &(heros.at(FPVCharacter)->getFPVCam());
+                FPVCharacterL += 1;
+                FPVCharacterL %= heros.size();
+                FPVCamL = &(heros.at(FPVCharacterL)->getFPVCam());
             }
         }else if(keysDown[GLFW_KEY_3]){
-            cam = &freeCamera;
+            camL = &freeCameraL;
         }
     }
     // Handle key presses
-    cam->keyPress(keysDown[GLFW_KEY_W], keysDown[GLFW_KEY_S]);
+    camL->keyPress(keysDown[GLFW_KEY_W], keysDown[GLFW_KEY_S]);
 }
 
 
@@ -491,19 +500,19 @@ void setupOpenGL() {
  * Set the initial parameters for the cameras
  */
 void setupCameras(){
-    arcBallCamera.setPhi(3 * M_PI / 5);
-    arcBallCamera.setTheta(0);
-    arcBallCamera.setDistance(10);
-    arcBallCamera.setTarget(&cartHero.getPos());
-    arcBallCamera.update();
+    arcBallCameraL.setPhi(3 * M_PI / 5);
+    arcBallCameraL.setTheta(0);
+    arcBallCameraL.setDistance(10);
+    arcBallCameraL.setTarget(&cartHero.getPos());
+    arcBallCameraL.update();
 
-    freeCamera.setTheta( -M_PI / 3.0f);
-    freeCamera.setPhi(M_PI / 2.8f);
-    freeCamera.setPos(glm::vec3(0.0f,20.0f,0.0f));
-    freeCamera.update();
+    freeCameraL.setTheta(-M_PI / 3.0f);
+    freeCameraL.setPhi(M_PI / 2.8f);
+    freeCameraL.setPos(glm::vec3(0.0f, 20.0f, 0.0f));
+    freeCameraL.update();
 
-    FPVCam = &heros.at(1)->getFPVCam();
-    FPVCharacter = 1;
+    FPVCamL = &heros.at(1)->getFPVCam();
+    FPVCharacterL = 1;
 }
 
 //
@@ -560,7 +569,7 @@ void mainScreen(GLint framebufferWidth, GLint framebufferHeight){
     glLoadIdentity();                            // set the matrix to be the identity
 
     // set up our look at matrix to position our camera
-    glm::mat4 viewMtx = cam->getLookAt();
+    glm::mat4 viewMtx = camL->getLookAt();
     // multiply by the look at matrix - this is the same as our view matrix
     glMultMatrixf(&viewMtx[0][0]);
     placeLighting();
@@ -570,20 +579,20 @@ void mainScreen(GLint framebufferWidth, GLint framebufferHeight){
 
 void miniMap(GLint framebufferWidth, GLint framebufferHeight){
     // Do minimap render
-    glScissor(miniWindowStartX, miniWindowStartY, framebufferWidth - miniWindowStartX,
-              framebufferHeight - miniWindowStartY);
+    glScissor(miniWindowStartLX, miniWindowStartLY, framebufferWidth - miniWindowStartLX,
+              framebufferHeight - miniWindowStartLY);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     // Set the Scissor to the full screen again
     glScissor(0, 0, framebufferWidth, framebufferHeight);
     // update the viewport - This is for the minimap view
-    glViewport(miniWindowStartX, miniWindowStartY, framebufferWidth - miniWindowStartX,
-               framebufferHeight - miniWindowStartY);
+    glViewport(miniWindowStartLX, miniWindowStartLY, framebufferWidth - miniWindowStartLX,
+               framebufferHeight - miniWindowStartLY);
 
     glMatrixMode(GL_MODELVIEW);    // make the ModelView matrix current to be modified by any transformations
     glLoadIdentity();                            // set the matrix to be the identity
 
     // set up our look at matrix to position our camera
-    glm::mat4 miniViewMtx = FPVCam->getLookAt();
+    glm::mat4 miniViewMtx = FPVCamL->getLookAt();
     // multiply by the look at matrix - this is the same as our view martix
     glMultMatrixf(&miniViewMtx[0][0]);
     placeLighting();
