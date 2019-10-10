@@ -4,6 +4,8 @@
 Q - Exits the game
 ESC - Exits the game
 X - toggle split screen
+shift + 1 - set camera to Arc Ball Camera
+shift + 2 - set camera to Free Camera
 
 Arc Ball Camera
     WASD - Move around wandering character when the camera is on it
@@ -16,7 +18,7 @@ Free Camera
     W,S - move forwards/backwards along axis
     click + drag - change heading
 First Person View
-    shift + 2 - toggle what character the camera is targeting
+    shift + 3 - toggle what character the camera is targeting
 
 
 

@@ -299,7 +299,7 @@ static void mouse_button_callback(GLFWwindow *window, int button, int action, in
 void updateWandersPos() {
     bool moved = false;
     // Only move the wander if the camera target is the cart hero
-    if((camL == &arcBallCameraL && arcBallCameraL.getTarget() == &cartHero.getPos())||(camR == &arcBallCameraR && arcBallCameraR.getTarget() == &cartHero.getPos())) {
+    if((camL == &arcBallCameraL && arcBallCameraL.getTarget() == &cartHero.getPos())||(split && camR == &arcBallCameraR && arcBallCameraR.getTarget() == &cartHero.getPos())) {
         if (keysDown[GLFW_KEY_W]) {
             cartHero.moveForward();
             moved = true;
@@ -367,7 +367,7 @@ void updateCamera(){
             cameraChange(camR, arcBallCameraR, freeCameraR, FPVCamR, FPVCharacterR);
         }
     }else{
-        cameraChange(camL, arcBallCameraL, freeCameraL, FPVCamL, FPVCharacterL);
+        cameraChange(camL, arcBallCameraL, freeCameraR, FPVCamR, FPVCharacterR);
     }
 
 }
