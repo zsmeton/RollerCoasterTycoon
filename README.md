@@ -1,14 +1,22 @@
 # RollerCoasterTycoon
 
-# TODO:
-- Draw all characters (and faerys)
-- Create Bezier Patch for ground
-- Get one player to run around the ground
-- Get environment to generate on ground
-- Create Bezier Curve for roller coaster
-- Make roller coaster all pretty (rails, supports, and what not)
-- Get one player to move along roller coaster using time steps
-- Get one player to move along roller coaster using distance steps
-- File Read in stuff
-- Beutification of the whole program (swaying trees, more bezier surfaces)
-- Set up multiple views
+# Controls #
+Q - Exits the game
+ESC - Exits the game
+X - toggle split screen
+
+Arc Ball Camera
+    WASD - Move around wandering character when the camera is on it
+    click + drag - move camera around object
+    ctrl + click + drag - Change distance of camera to object
+    1 - target the wandering player
+    2 - target the time stepping player
+    3 - target the distance stepping player
+Free Camera
+    W,S - move forwards/backwards along axis
+    click + drag - change heading
+First Person View
+    shift + 2 - toggle what character the camera is targeting
+
+
+

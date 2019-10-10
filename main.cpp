@@ -278,10 +278,6 @@ static void cursor_callback(GLFWwindow *window, double x, double y) {
     mousePos.y = y;
 }
 
-static void cursor_position_callback(GLFWwindow* window, double x, double y){
-    mousePos.x = x;
-    mousePos.y = y;
-}
 
 // mouse_button_callback() /////////////////////////////////////////////////////
 //
