@@ -6,8 +6,9 @@
 #define MP_FIRSTPERSONCAMERA_H
 
 #include "CameraBase.h"
+#include "Lookable.h"
 
-class FirstPersonCamera{
+class FirstPersonCamera: public Lookable{
 
 public:
     void setMtx(glm::mat4& mtx){

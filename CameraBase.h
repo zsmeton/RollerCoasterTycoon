@@ -13,14 +13,15 @@
 
 #endif
 
-#include <glm/glm.hpp>
+
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include "GlobalConsts.h"
 #include "HelperFunctions.h"
+#include "Lookable.h"
 
-class CameraBase {
+class CameraBase : public Lookable{
 public:
     virtual void update() = 0;
 

@@ -52,7 +52,7 @@ public:
         // Rotate to match the terrain
         worldMtx = glm::rotate(worldMtx, rad, rotAxis);
         // Translate upwards to keep wheels out of ground
-        worldMtx = glm::translate(worldMtx, glm::vec3(0.0f,CART_WHEEL_RADIUS+CART_THICKNESS/10, 0.0f));
+        worldMtx = glm::translate(worldMtx, glm::vec3(0.0f,CART_WHEEL_RADIUS+0.25f, 0.0f));
         // Orient along direction
         //worldMtx = glm::rotate(worldMtx, theta, glm::vec3(0.0f, 1.0f, 0.0f));
         glMultMatrixf(&worldMtx[0][0]);
