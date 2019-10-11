@@ -36,7 +36,7 @@ public:
     constexpr static const float DL = FPS_ADJUSTMENT * 1.0f;
     constexpr static const int BEZIER_CURVE_TABLE_RES = 10000; // the dt step size between points in lookup table
 
-    glm::vec3 UP = glm::vec3(0.0f,0.0f,1.0f);
+
 
 
     Coaster() {
@@ -416,6 +416,7 @@ private:
     float distance = 0.0f;
     float minDist = -1;
     float maxDist = -1;
+    glm::vec3 UP = glm::vec3(0.0f,0.0f,1.0f);
 
 };
 

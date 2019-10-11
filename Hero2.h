@@ -34,6 +34,10 @@
 class Snake: public HeroBase, public FaeryHero{
 
 public:
+    constexpr static const float DT = FPS_ADJUSTMENT * 0.01f;
+    constexpr static const float DR = -FPS_ADJUSTMENT * 1.0f;
+
+
     Snake();                            //Constructor
     void draw() override;
     void update() override;
@@ -41,23 +45,28 @@ public:
     // Getters and setters
     void setFaeryPath(const vector<glm::vec3>& controlPoints) override;
 
+    const vector<glm::vec3> &getControlPoints() const;
+
+    void setControlPoints(const vector<glm::vec3> &controlPoints);
 
 private:
-    float snakeTheta = PI;                  // snake DIRECTION in spherical coordinates
-    glm::vec3 snakeDir;                 // snake DIRECTION in cartesian coordinates
+    int flickingTongueDir = 20;
+    int tongueChange = 1;
+    vector<glm::vec3> controlPoints;
+    vector<glm::vec3> faeryMovement;
+    int faeryIndex = 0;
+    float sparkleRotTheta = 0;
+    float minT = 0;
+    float maxT;
+    float t=0;
+    float theta= 0;
 
-    int flickingTongueDir = 20;         //
-    int tongueChange = 1;               //
+    float PI = 3.141592;
+    glm::vec3 UP = glm::vec3(0.0f,0.0f,1.0f);
 
-    vector<glm::vec3> faeryMovement;    //
-    int faeryIndex = 0;                 //
-    float sparkleRotTheta = 0;          //
 
-    float PI = 3.141592;                //
-
-    void recomputeOrientation();
     void recomputeSnakeOrientation();
-    float getRand();
+    void restrictBezierCurvePos();
     void drawSnakeEye();
     void flickingTongue();
     void drawSnakeTongue();

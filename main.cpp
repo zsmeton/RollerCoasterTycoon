@@ -190,6 +190,7 @@ bool readWorldFile(char* filename){
             return false;
         }
         coasterHero.setControlPoints(coasterControlPoints);
+        snakeHero.setControlPoints(coasterControlPoints);
 
         // Loading in environment objects
         if(!readEnvironment(file)){
@@ -583,7 +584,7 @@ void setupScene() {
         gets(fileName);
     }
      */
-    readWorldFile("WorldFiles/WorldFile1.config");
+    readWorldFile("WorldFiles/WorldFile2.config");
 
     // Set up the environment
     generateEnvironmentDL();

@@ -100,8 +100,6 @@ void renderBezierCurve( glm::vec3 p0, glm::vec3 p1, glm::vec3 p2, glm::vec3 p3, 
         glm::vec3 coasterHeading = computeRotationBezierCurve(vector<glm::vec3>({p0,p1,p2,p3}), float(i)/ static_cast<float>(resolution));
         glm::vec3 rotAxis =glm::cross(UP, coasterHeading);
         float rad = acos(glm::dot( glm::normalize(coasterHeading), glm::normalize(UP)));
-
-
         GLfloat color[4] = {static_cast<GLfloat>((i/0.25)/255.0f), i/255.0f,(1*4)/255.0f, 1};
         glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE, color);
         // Find the rotation of the coaster cube

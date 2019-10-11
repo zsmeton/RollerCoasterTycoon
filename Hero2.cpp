@@ -23,19 +23,78 @@ Snake::Snake() {
     recomputeSnakeOrientation();
 }
 
+void Snake::draw() {
+    glm::vec3 coasterHeading = computeRotationBezierCurve(controlPoints, float(t));
+    glm::vec3 rotAxis =glm::cross(UP, coasterHeading);
+    float rad = acos(glm::dot( glm::normalize(coasterHeading), glm::normalize(UP)));
+
+    worldMtx = glm::translate(glm::mat4(1.0f), getPos());
+    worldMtx = glm::rotate(worldMtx, rad, rotAxis);
+    glMultMatrixf(&worldMtx[0][0]);{
+        if (faeryMovement.size() != 0) {
+            drawFaery();
+        }
+    }glMultMatrixf(&(glm::inverse(worldMtx))[0][0]);
+    worldMtx = glm::rotate(worldMtx, PI / 2, glm::vec3(0.0f, 0.0, 1.0f));
+    worldMtx = glm::rotate(worldMtx, PI/2, glm::vec3(0.0f,1.0f,0.0f));
+    worldMtx = glm::translate(worldMtx, glm::vec3(0.0f,0.0f,0.5f));
+    worldMtx = glm::rotate(worldMtx, theta, glm::vec3(0.0f,1.0f,0.0f));
+    worldMtx = glm::scale(worldMtx, glm::vec3(0.25f, 0.25f, 0.25f));
+    glMultMatrixf(&worldMtx[0][0]);{
+        drawSnakeTongue();
+        drawSnake();
+    }glMultMatrixf(&(glm::inverse(worldMtx))[0][0]);
+    // Position the camera correctly
+    worldMtx = glm::scale(worldMtx, glm::vec3(4.0f, 4.0f, 4.0f));
+    worldMtx = glm::rotate(worldMtx, PI/2, glm::vec3(0.0f,1.0f,0.0f));
+    worldMtx = glm::translate(worldMtx, glm::vec3(0.0f, -4.0f, 0.0f));
+    worldMtx = glm::rotate(worldMtx, -PI/2, glm::vec3(1.0f,0.0f,0.0f));
+    worldMtx = glm::translate(worldMtx, glm::vec3(-1.0f, -1.0, 10.0f));
+}
+
+void Snake::update() {
+    if(faeryMovement.size() != 0) {
+        faeryIndex = (faeryIndex + 1) % faeryMovement.size();
+    }
+    flickingTongue();
+    t += DT;
+    setPos(computePositionBezierCurve(controlPoints, t));
+    theta += DR;
+    if(theta < 0){
+        theta = 2*M_PI;
+    }
+}
+
+void Snake::setFaeryPath(const vector<glm::vec3>& controlPoints){
+    int max_i = controlPoints.size()-4;
+    if(max_i < 0) return;
+    if(max_i > 0){
+        max_i += (controlPoints.size()-4)/3;
+    }
+    faeryMovement.clear();
+    for(float i = 0; i < max_i; i += FPS_ADJUSTMENT*0.01){
+        faeryMovement.emplace_back(computePositionBezierCurve(controlPoints, i));
+    }
+}
+
+const vector<glm::vec3> &Snake::getControlPoints() const {
+    return controlPoints;
+}
+
+void Snake::setControlPoints(const vector<glm::vec3> &controlPoints) {
+    Snake::controlPoints = controlPoints;
+    maxT = controlPoints.size()/3;
+}
+
+void Snake::restrictBezierCurvePos(){
+    t = restrictVariable<float>(t, minT +0.0001, maxT - 0.0001);
+}
+
 //*************************************************************************************
 //
 // Helper Functions
 void Snake::recomputeSnakeOrientation() {
 
-    snakeDir.x = cos(snakeTheta);
-    snakeDir.y = 0;
-    snakeDir.z = sin(snakeTheta);
-    float magnitude = sqrt(pow(snakeDir.x, 2) + pow(snakeDir.y, 2) + pow(snakeDir.z, 2));
-    // and NORMALIZE this directional vector!!!
-    snakeDir.x /= magnitude;
-    snakeDir.y /= magnitude;
-    snakeDir.z /= magnitude;
 }
 
 
@@ -247,47 +306,6 @@ void Snake::drawFaery() {
     };
     glMultMatrixf(&(glm::inverse(faeryTrans))[0][0]);
 
-}
-
-void Snake::draw() {
-    worldMtx = glm::translate(glm::mat4(1.0f), getPos());
-    worldMtx = glm::rotate(worldMtx, -snakeTheta, glm::vec3(0.0f, 1.0, 0.0f));
-    glMultMatrixf(&worldMtx[0][0]);{
-        if (faeryMovement.size() != 0) {
-            drawFaery();
-        }
-    }glMultMatrixf(&(glm::inverse(worldMtx))[0][0]);
-    worldMtx = glm::rotate(worldMtx, PI / 2, glm::vec3(0.0f, 0.0, 1.0f));
-    worldMtx = glm::rotate(worldMtx, PI/2, glm::vec3(0.0f,1.0f,0.0f));
-    worldMtx = glm::scale(worldMtx, glm::vec3(0.15f, 0.15f, 0.15f));
-    glMultMatrixf(&worldMtx[0][0]);{
-                drawSnakeTongue();
-                drawSnake();
-    }glMultMatrixf(&(glm::inverse(worldMtx))[0][0]);
-    // Position the camera correctly
-    worldMtx = glm::scale(worldMtx, glm::vec3(6.67f, 6.67f, 6.67f));
-    worldMtx = glm::rotate(worldMtx, PI/2, glm::vec3(0.0f,1.0f,0.0f));
-    worldMtx = glm::translate(worldMtx, glm::vec3(0.0f, -6.67f, 0.0f));
-    worldMtx = glm::rotate(worldMtx, -PI/2, glm::vec3(1.0f,0.0f,0.0f));
-    worldMtx = glm::translate(worldMtx, glm::vec3(-1.0f, -1.0, 10.0f));
-}
-
-void Snake::update() {
-    if(faeryMovement.size() != 0) {
-        faeryIndex = (faeryIndex + 1) % faeryMovement.size();
-    }
-}
-
-void Snake::setFaeryPath(const vector<glm::vec3>& controlPoints){
-    int max_i = controlPoints.size()-4;
-    if(max_i < 0) return;
-    if(max_i > 0){
-        max_i += (controlPoints.size()-4)/3;
-    }
-    faeryMovement.clear();
-    for(float i = 0; i < max_i; i += FPS_ADJUSTMENT*0.01){
-        faeryMovement.emplace_back(computePositionBezierCurve(controlPoints, i));
-    }
 }
 
 
